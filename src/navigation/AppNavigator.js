@@ -18,6 +18,7 @@ import SettingsScreen from "../screens/SettingsScreen"
 import EditProfileScreen from "../screens/EditProfileScreen"
 import NotificationScreen from "../screens/NotificationScreen"
 import BudgetPlannerScreen from "../screens/BudgetPlannerScreen"
+import StatisticsScreen from "../screens/StatisticsScreen"
 
 const Stack = createNativeStackNavigator()
 const Drawer = createDrawerNavigator()
@@ -55,7 +56,7 @@ function MainDrawerNavigator() {
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Budget Planner" component={BudgetPlannerScreen} />
       <Drawer.Screen name="Records" component={RecordScreen} />
-      <Drawer.Screen name="Statics" component={() => <PlaceholderScreen name="Statics" />} />
+      <Drawer.Screen name="Statics" component={StatisticsScreen} />
       <Drawer.Screen name="Settings" component={SettingsScreen} />
     </Drawer.Navigator>
   )
@@ -85,6 +86,7 @@ export default function AppNavigator() {
               <Stack.Screen name="EditProfile" component={EditProfileScreen} />
               <Stack.Screen name="Notifications" component={NotificationScreen} />
               <Stack.Screen name="BudgetPlanner" component={BudgetPlannerScreen} />
+              <Stack.Screen name="Statics" component={StatisticsScreen} />
             </>
           ) : (
             <>
