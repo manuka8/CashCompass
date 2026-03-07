@@ -14,19 +14,24 @@ import {
 import Svg, { G, Circle } from "react-native-svg"
 import { useNavigation } from "@react-navigation/native"
 import { ThemeContext, THEMES } from "../context/ThemeContext"
+import { AuthContext } from "../context/AuthContext"
+import { getCurrencySymbol } from "../utils/constants"
 
 const { width } = Dimensions.get("window")
 
 export default function HomeScreen() {
     const { theme } = useContext(ThemeContext)
+    const { user } = useContext(AuthContext)
     const navigation = useNavigation()
     const [viewType, setViewType] = useState("Daily") // Daily or Monthly
 
+    const currencySymbol = getCurrencySymbol(user?.user_metadata?.currency)
+
     // Dummy Data
     const stats = {
-        balance: "$12,450.00",
-        income: "$4,200.00",
-        expense: "$1,850.00"
+        balance: `${currencySymbol}12,450.00`,
+        income: `${currencySymbol}4,200.00`,
+        expense: `${currencySymbol}1,850.00`
     }
 
     // Chart Logic (Simplified Doughnut using SVG)
@@ -179,7 +184,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 100,
     },
     header: {
         height: 64,
@@ -188,8 +192,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        paddingTop: 12,
-        borderTopWidth: 1,
+        paddingTop: 5,
     },
     headerLeft: {
         flexDirection: "row",
