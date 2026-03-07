@@ -10,15 +10,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  StatusBar
+  StatusBar,
 } from "react-native"
 import { supabase } from "../services/supabase"
+import { Dropdown } from 'react-native-element-dropdown';
+import { COUNTRIES, CURRENCIES } from "../utils/constants"
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [country, setCountry] = useState(null)
+  const [currency, setCurrency] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [isCountryFocus, setIsCountryFocus] = useState(false)
+  const [isCurrencyFocus, setIsCurrencyFocus] = useState(false)
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -26,7 +32,7 @@ export default function RegisterScreen({ navigation }) {
   }
 
   const register = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !country || !currency) {
       Alert.alert("Error", "Please fill in all fields")
       return
     }
@@ -49,7 +55,13 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true)
     const { error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        data: {
+          country,
+          currency,
+        }
+      }
     })
 
     if (error) {
@@ -117,6 +129,56 @@ export default function RegisterScreen({ navigation }) {
                 secureTextEntry
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Country</Text>
+              <Dropdown
+                style={[styles.dropdown, isCountryFocus && { borderColor: '#2ECC71' }]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                iconStyle={styles.iconStyle}
+                data={COUNTRIES}
+                search
+                maxHeight={300}
+                labelField="label"
+                valueField="label"
+                placeholder={!isCountryFocus ? 'Select Country' : '...'}
+                searchPlaceholder="Search..."
+                value={country}
+                onFocus={() => setIsCountryFocus(true)}
+                onBlur={() => setIsCountryFocus(false)}
+                onChange={item => {
+                  setCountry(item.label);
+                  setIsCountryFocus(false);
+                }}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Preferred Currency</Text>
+              <Dropdown
+                style={[styles.dropdown, isCurrencyFocus && { borderColor: '#2ECC71' }]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                iconStyle={styles.iconStyle}
+                data={CURRENCIES}
+                search
+                maxHeight={300}
+                labelField="label"
+                valueField="label"
+                placeholder={!isCurrencyFocus ? 'Select Currency' : '...'}
+                searchPlaceholder="Search..."
+                value={currency}
+                onFocus={() => setIsCurrencyFocus(true)}
+                onBlur={() => setIsCurrencyFocus(false)}
+                onChange={item => {
+                  setCurrency(item.value);
+                  setIsCurrencyFocus(false);
+                }}
               />
             </View>
 
@@ -206,6 +268,31 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     borderWidth: 1,
     borderColor: "#E2E8F0",
+  },
+  dropdown: {
+    height: 56,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  placeholderStyle: {
+    fontSize: 16,
+    color: "#94A3B8",
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+    color: "#0F172A",
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+    borderRadius: 8,
   },
   registerBtn: {
     backgroundColor: "#0F172A",
