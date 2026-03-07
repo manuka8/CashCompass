@@ -16,7 +16,7 @@ import {
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
-import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES } from "../utils/constants"
+import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES, getCurrencySymbol } from "../utils/constants"
 import { supabase } from "../services/supabase"
 import { AuthContext } from "../context/AuthContext"
 
@@ -26,6 +26,8 @@ export default function RecordScreen() {
     const { theme } = useContext(ThemeContext)
     const { user } = useContext(AuthContext)
     const navigation = useNavigation()
+
+    const currencySymbol = getCurrencySymbol(user?.user_metadata?.currency)
 
     const [transactions, setTransactions] = useState([])
     const [loading, setLoading] = useState(true)
@@ -121,9 +123,9 @@ export default function RecordScreen() {
             <View style={styles.recordRight}>
                 <Text style={[
                     styles.recordAmount,
-                    { color: item.type === "Income" ? "#2ECC71" : item.type === "Expense" ? "#E74C6C" : theme.text }
+                    { color: (item.type === "Expense" || item.type === "Transfer") ? "#E74C6C" : "#2ECC71" }
                 ]}>
-                    {item.type === "Expense" ? "-" : "+"}${item.amount.toFixed(2)}
+                    {(item.type === "Expense" || item.type === "Transfer") ? "-" : "+"}{currencySymbol}{item.amount.toFixed(2)}
                 </Text>
                 <Text style={[styles.recordDate, { color: theme.subtext }]}>{item.date}</Text>
             </View>
