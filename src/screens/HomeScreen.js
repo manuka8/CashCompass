@@ -1,9 +1,8 @@
-import React, { useState, useContext } from "react"
+import React, { useState, useContext, useEffect } from "react"
 import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     Image,
     ScrollView,
@@ -11,11 +10,13 @@ import {
     StatusBar,
     Alert
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { G, Circle } from "react-native-svg"
 import { useNavigation } from "@react-navigation/native"
 import { ThemeContext, THEMES } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
+import { supabase } from "../services/supabase"
 
 const { width } = Dimensions.get("window")
 
@@ -24,6 +25,9 @@ export default function HomeScreen() {
     const { user } = useContext(AuthContext)
     const navigation = useNavigation()
     const [viewType, setViewType] = useState("Daily") // Daily or Monthly
+    const [budgets, setBudgets] = useState([])
+    const [budgetStats, setBudgetStats] = useState([])
+    const [loading, setLoading] = useState(true)
 
     const currencySymbol = getCurrencySymbol(user?.user_metadata?.currency)
 
@@ -43,6 +47,79 @@ export default function HomeScreen() {
     const expensePercentage = 0.44 // Example ratio
     const strokeDashoffset = circumference * (1 - expensePercentage)
 
+    const fetchBudgetsAndSpending = async () => {
+        setLoading(true)
+        // Fetch budgets
+        const { data: budgetData } = await supabase
+            .from("budgets")
+            .select("*")
+            .eq("user_id", user.id)
+
+        if (!budgetData) {
+            setLoading(false)
+            return
+        }
+
+        const stats = []
+        for (let b of budgetData) {
+            const now = new Date()
+            let startDate = new Date()
+            let endDate = new Date()
+
+            if (b.period === "Daily") {
+                startDate.setHours(0, 0, 0, 0)
+                endDate.setHours(23, 59, 59, 999)
+            } else if (b.period === "Monthly") {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+            } else if (b.period === "Yearly") {
+                startDate = new Date(now.getFullYear(), 0, 1)
+                endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+            } else if (b.period === "Specified Date") {
+                startDate = new Date(b.start_date)
+                endDate = new Date(b.end_date)
+                endDate.setHours(23, 59, 59, 999)
+            }
+
+            let query = supabase
+                .from("transactions")
+                .select("amount")
+                .eq("user_id", user.id)
+                .gte("date", startDate.toISOString().split('T')[0])
+                .lte("date", endDate.toISOString().split('T')[0])
+
+            if (b.type === "Category") {
+                query = query.eq("category", b.category)
+            } else if (b.type === "Expense") {
+                query = query.in("type", ["Expense", "Transfer"])
+            } else {
+                query = query.eq("type", b.type)
+            }
+
+            const { data: trans } = await query
+
+            const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount), 0)
+
+            // Calculate percentages for both if they exist
+            let maxPercent = b.max_amount ? Math.min((currentTotal / b.max_amount) * 100, 100) : 0
+            let minPercent = b.min_amount ? Math.min((currentTotal / b.min_amount) * 100, 100) : 0
+
+            stats.push({
+                ...b,
+                currentTotal,
+                maxPercent,
+                minPercent
+            })
+        }
+        setBudgets(budgetData)
+        setBudgetStats(stats)
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        fetchBudgetsAndSpending()
+    }, [])
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar barStyle={theme.mode === "dark" ? "light-content" : "dark-content"} />
@@ -56,12 +133,20 @@ export default function HomeScreen() {
                     <Image source={theme.logo} style={styles.logo} resizeMode="contain" />
                 </View>
                 <View style={styles.headerRight}>
-                    <TouchableOpacity style={styles.iconBtn}>
+                    <TouchableOpacity
+                        style={styles.notificationBtn}
+                        onPress={() => navigation.navigate("Notifications")}
+                    >
                         <Text style={{ fontSize: 20 }}>🔔</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.profileContainer}>
+                    <TouchableOpacity
+                        style={styles.profileContainer}
+                        onPress={() => navigation.navigate("Settings")}
+                    >
                         <View style={[styles.profilePic, { backgroundColor: theme.primary }]}>
-                            <Text style={styles.profileInitial}>U</Text>
+                            <Text style={styles.profileInitial}>
+                                {user?.user_metadata?.full_name?.charAt(0) || "U"}
+                            </Text>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -99,6 +184,58 @@ export default function HomeScreen() {
                 </View>
 
                 {/* Analytics Section - Doughnut Chart */}
+                <View style={styles.analyticsSection}>
+                    <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 15 }]}>Budget Status</Text>
+                    {budgetStats.length === 0 ? (
+                        <TouchableOpacity
+                            style={[styles.emptyBudgetCard, { borderColor: theme.border }]}
+                            onPress={() => navigation.navigate("BudgetPlanner")}
+                        >
+                            <Text style={[styles.emptyBudgetText, { color: theme.subtext }]}>No budgets set. Tap to start planning.</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        budgetStats.map(stat => (
+                            <View key={stat.id} style={[styles.budgetStatCard, { backgroundColor: theme.card }]}>
+                                <View style={styles.budgetStatHeader}>
+                                    <Text style={[styles.budgetStatTitle, { color: theme.text }]}>
+                                        {stat.type === "Category" ? stat.category : stat.type} ({stat.period})
+                                    </Text>
+                                    <Text style={[styles.budgetStatAmount, { color: theme.text }]}>
+                                        {currencySymbol}{stat.currentTotal.toFixed(0)}
+                                    </Text>
+                                </View>
+
+                                {stat.min_amount && (
+                                    <View style={styles.limitRow}>
+                                        <Text style={[styles.limitLabel, { color: theme.subtext }]}>Goal: {currencySymbol}{stat.min_amount}</Text>
+                                        <View style={[styles.progressBarBg, { backgroundColor: theme.border, height: 6 }]}>
+                                            <View style={[
+                                                styles.progressBarFill,
+                                                { width: `${stat.minPercent}%`, backgroundColor: stat.minPercent >= 100 ? "#2ECC71" : "#F1C40F" }
+                                            ]} />
+                                        </View>
+                                    </View>
+                                )}
+
+                                {stat.max_amount && (
+                                    <View style={[styles.limitRow, { marginTop: 8 }]}>
+                                        <Text style={[styles.limitLabel, { color: theme.subtext }]}>Limit: {currencySymbol}{stat.max_amount}</Text>
+                                        <View style={[styles.progressBarBg, { backgroundColor: theme.border, height: 6 }]}>
+                                            <View style={[
+                                                styles.progressBarFill,
+                                                {
+                                                    width: `${stat.maxPercent}%`,
+                                                    backgroundColor: stat.maxPercent > 90 ? "#E74C6C" : stat.maxPercent > 70 ? "#F1C40F" : theme.primary
+                                                }
+                                            ]} />
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        ))
+                    )}
+                </View>
+
                 <View style={styles.analyticsSection}>
                     <View style={styles.analyticsHeader}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Analytics</Text>
@@ -309,6 +446,64 @@ const styles = StyleSheet.create({
     toggleBtnText: {
         fontSize: 12,
         fontWeight: "700",
+    },
+    emptyBudgetCard: {
+        padding: 24,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderStyle: "dashed",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 10,
+        backgroundColor: "transparent",
+    },
+    emptyBudgetText: {
+        fontSize: 14,
+        textAlign: "center",
+        opacity: 0.8,
+    },
+    budgetStatCard: {
+        padding: 16,
+        borderRadius: 20,
+        marginBottom: 12,
+        marginTop: 10,
+        elevation: 1,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+    },
+    budgetStatHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        alignItems: "center",
+    },
+    budgetStatTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        letterSpacing: 0.3,
+    },
+    budgetStatAmount: {
+        fontSize: 13,
+        fontWeight: "800",
+    },
+    progressBarBg: {
+        height: 10,
+        borderRadius: 5,
+        overflow: "hidden",
+    },
+    progressBarFill: {
+        height: "100%",
+        borderRadius: 5,
+    },
+    limitRow: {
+        width: "100%",
+    },
+    limitLabel: {
+        fontSize: 10,
+        fontWeight: "600",
+        marginBottom: 4,
     },
     chartCard: {
         padding: 24,
