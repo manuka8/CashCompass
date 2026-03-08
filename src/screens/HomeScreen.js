@@ -28,6 +28,8 @@ export default function HomeScreen() {
     const [loading, setLoading] = useState(true)
     const [transactions, setTransactions] = useState([])
     const [recentTransactions, setRecentTransactions] = useState([])
+    const [budgets, setBudgets] = useState([])
+    const [budgetStats, setBudgetStats] = useState([])
     const [totals, setTotals] = useState({
         income: 0,
         expense: 0,
@@ -736,5 +738,61 @@ const styles = StyleSheet.create({
         fontSize: 32,
         color: "#FFF",
         fontWeight: "300",
+    },
+    recentTransactionsSection: {
+        marginTop: 24,
+    },
+    sectionHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    seeMoreBtn: {
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    transactionItem: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+        borderRadius: 20,
+        marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
+    },
+    transactionLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    iconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
+    transactionCategory: {
+        fontSize: 15,
+        fontWeight: "bold",
+    },
+    transactionDate: {
+        fontSize: 11,
+        marginTop: 2,
+    },
+    transactionAmount: {
+        fontSize: 15,
+        fontWeight: "bold",
+    },
+    emptyState: {
+        padding: 30,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
     }
 })
