@@ -33,6 +33,9 @@ export default function AddExpensesScreen({ navigation }) {
     const [subCategory, setSubCategory] = useState(null)
     const [note, setNote] = useState("")
     const [loading, setLoading] = useState(false)
+    const [budgets, setBudgets] = useState([])
+    const [budgetWarning, setBudgetWarning] = useState(null)
+    const [isBlocked, setIsBlocked] = useState(false)
 
     const [availableSubCategories, setAvailableSubCategories] = useState([])
 
@@ -46,7 +49,105 @@ export default function AddExpensesScreen({ navigation }) {
         // Reset selections on tab change
         setCategory(null)
         setSubCategory(null)
+        setBudgetWarning(null)
+        setIsBlocked(false)
     }, [activeTab])
+
+    const fetchBudgets = async () => {
+        const { data, error } = await supabase
+            .from("budgets")
+            .select("*")
+            .eq("user_id", user.id)
+
+        if (!error) setBudgets(data || [])
+    }
+
+    useEffect(() => {
+        fetchBudgets()
+    }, [])
+
+    const checkBudget = async (inputAmount) => {
+        if (!inputAmount || isNaN(inputAmount)) {
+            setBudgetWarning(null)
+            setIsBlocked(false)
+            return
+        }
+
+        const amt = parseFloat(inputAmount)
+        let relevantBudgets = budgets.filter(b => {
+            if (b.type === "Expense" && (activeTab === "Expense" || activeTab === "Transfer")) return true
+            if (b.type === "Income" && activeTab === "Income") return true
+            if (b.type === "Category" && b.category === category) return true
+            return false
+        })
+
+        if (relevantBudgets.length === 0) {
+            setBudgetWarning(null)
+            setIsBlocked(false)
+            return
+        }
+
+        // Check each relevant budget
+        for (let b of relevantBudgets) {
+            // Calculate current total for the period
+            const now = new Date()
+            let startDate = new Date()
+            let endDate = new Date()
+
+            if (b.period === "Daily") {
+                startDate.setHours(0, 0, 0, 0)
+                endDate.setHours(23, 59, 59, 999)
+            } else if (b.period === "Monthly") {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+            } else if (b.period === "Yearly") {
+                startDate = new Date(now.getFullYear(), 0, 1)
+                endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+            } else if (b.period === "Specified Date") {
+                startDate = new Date(b.start_date)
+                endDate = new Date(b.end_date)
+                endDate.setHours(23, 59, 59, 999)
+            }
+
+            let query = supabase
+                .from("transactions")
+                .select("amount")
+                .eq("user_id", user.id)
+                .gte("date", startDate.toISOString().split('T')[0])
+                .lte("date", endDate.toISOString().split('T')[0])
+
+            if (b.type === "Category") {
+                query = query.eq("category", b.category)
+            } else if (b.type === "Expense") {
+                query = query.in("type", ["Expense", "Transfer"])
+            } else {
+                query = query.eq("type", b.type)
+            }
+
+            const { data: trans } = await query
+
+            const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount), 0)
+            const projectedTotal = currentTotal + amt
+
+            if (b.max_amount && projectedTotal > b.max_amount) {
+                setBudgetWarning(`🚨 Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${b.max_amount.toLocaleString()}.`)
+                if (b.is_blocking) {
+                    setIsBlocked(true)
+                    return // Stop checking if blocked
+                }
+            } else if (b.min_amount && projectedTotal < b.min_amount) {
+                setBudgetWarning(`💡 Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${b.min_amount.toLocaleString()}. Keep going!`)
+            } else if (b.max_amount && projectedTotal > b.max_amount * 0.8) {
+                setBudgetWarning(`⚠️ Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${b.max_amount.toLocaleString()}).`)
+            }
+        }
+        setBudgetWarning(null)
+        setIsBlocked(false)
+    }
+
+    useEffect(() => {
+        checkBudget(amount)
+    }, [amount, category])
 
     const indicatorStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: indicatorPosition.value }],
@@ -83,6 +184,16 @@ export default function AddExpensesScreen({ navigation }) {
         if (error) {
             Alert.alert("Error", "Failed to save transaction: " + error.message)
         } else {
+            // Create notification if warning exists
+            if (budgetWarning) {
+                await supabase.from("notifications").insert({
+                    user_id: user.id,
+                    title: "Budget Limit Warning",
+                    message: budgetWarning,
+                    type: "Budget Warning"
+                })
+            }
+
             Alert.alert("Success", "Transaction saved successfully!", [
                 { text: "OK", onPress: () => navigation.goBack() }
             ])
@@ -135,6 +246,14 @@ export default function AddExpensesScreen({ navigation }) {
                             autoFocus
                         />
                     </View>
+                    {budgetWarning && (
+                        <View style={[styles.warningContainer, { backgroundColor: isBlocked ? "#FF4D4D20" : "#F1C40F20" }]}>
+                            <Text style={[styles.warningText, { color: isBlocked ? "#FF4D4D" : "#D4AC0D" }]}>
+                                {isBlocked ? "🚫 " : "⚠️ "}{budgetWarning}
+                            </Text>
+                            {isBlocked && <Text style={styles.blockNote}>Transaction is blocked by your budget planner.</Text>}
+                        </View>
+                    )}
                 </Animated.View>
 
                 <Animated.View entering={FadeIn.delay(300)} style={[styles.formCard, { backgroundColor: theme.card }]}>
@@ -192,9 +311,9 @@ export default function AddExpensesScreen({ navigation }) {
                 </Animated.View>
 
                 <TouchableOpacity
-                    style={[styles.saveBtn, { backgroundColor: theme.primary }]}
+                    style={[styles.saveBtn, { backgroundColor: isBlocked ? theme.subtext : theme.primary }]}
                     onPress={handleSave}
-                    disabled={loading}
+                    disabled={loading || isBlocked}
                 >
                     {loading ? (
                         <ActivityIndicator color="white" />
@@ -339,4 +458,21 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: "bold",
     },
+    warningContainer: {
+        marginTop: 15,
+        padding: 12,
+        borderRadius: 12,
+    },
+    warningText: {
+        fontSize: 13,
+        fontWeight: "700",
+        textAlign: "center",
+    },
+    blockNote: {
+        fontSize: 11,
+        color: "#FF4D4D",
+        textAlign: "center",
+        marginTop: 4,
+        fontWeight: "600"
+    }
 })
