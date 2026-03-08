@@ -24,28 +24,108 @@ export default function HomeScreen() {
     const { theme } = useContext(ThemeContext)
     const { user } = useContext(AuthContext)
     const navigation = useNavigation()
-    const [viewType, setViewType] = useState("Daily") // Daily or Monthly
-    const [budgets, setBudgets] = useState([])
-    const [budgetStats, setBudgetStats] = useState([])
+    const [viewType, setViewType] = useState("Monthly") // Daily, Weekly, Monthly, Yearly
     const [loading, setLoading] = useState(true)
+    const [transactions, setTransactions] = useState([])
+    const [recentTransactions, setRecentTransactions] = useState([])
+    const [totals, setTotals] = useState({
+        income: 0,
+        expense: 0,
+        transfer: 0,
+        balance: 0
+    })
 
     const currencySymbol = getCurrencySymbol(user?.user_metadata?.currency)
 
-    // Dummy Data
-    const stats = {
-        balance: `${currencySymbol}12,450.00`,
-        income: `${currencySymbol}4,200.00`,
-        expense: `${currencySymbol}1,850.00`
+    // Dynamic Totals calculation based on transactions
+    const calculateTotals = (data) => {
+        let income = 0
+        let expense = 0
+        let transfer = 0
+
+        data.forEach(t => {
+            const amt = parseFloat(t.amount)
+            if (t.type === "Income") income += amt
+            else if (t.type === "Expense") expense += amt
+            else if (t.type === "Transfer") transfer += amt
+        })
+
+        setTotals({
+            income,
+            expense,
+            transfer,
+            balance: income - expense - transfer
+        })
     }
 
-    // Chart Logic (Simplified Doughnut using SVG)
+    const fetchHomeData = async () => {
+        setLoading(true)
+        try {
+            const now = new Date()
+            let startDate = new Date()
+
+            if (viewType === "Daily") {
+                startDate.setHours(0, 0, 0, 0)
+            } else if (viewType === "Weekly") {
+                startDate.setDate(now.getDate() - 7)
+            } else if (viewType === "Monthly") {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+            } else if (viewType === "Yearly") {
+                startDate = new Date(now.getFullYear(), 0, 1)
+            }
+
+            // Fetch transactions for the period
+            const { data: periodTrans, error: periodError } = await supabase
+                .from("transactions")
+                .select("*")
+                .eq("user_id", user.id)
+                .gte("date", startDate.toISOString().split('T')[0])
+                .order("date", { ascending: false })
+
+            if (periodError) throw periodError
+            setTransactions(periodTrans || [])
+            calculateTotals(periodTrans || [])
+
+            // Fetch last 5 recent transactions (regardless of period)
+            const { data: recent, error: recentError } = await supabase
+                .from("transactions")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("date", { ascending: false })
+                .order("time", { ascending: false })
+                .limit(5)
+
+            if (recentError) throw recentError
+            setRecentTransactions(recent || [])
+
+        } catch (error) {
+            console.error("Error fetching home data:", error)
+            Alert.alert("Error", "Could not fetch dashboard data.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchHomeData()
+    }, [viewType])
+
+    // Chart Logic
+    const totalActivity = totals.income + totals.expense + totals.transfer
+    const incomePercent = totalActivity > 0 ? (totals.income / totalActivity) : 0
+    const expensePercent = totalActivity > 0 ? (totals.expense / totalActivity) : 0
+    const transferPercent = totalActivity > 0 ? (totals.transfer / totalActivity) : 0
+
     const size = 180
     const strokeWidth = 15
     const center = size / 2
     const radius = center - strokeWidth
     const circumference = 2 * Math.PI * radius
-    const expensePercentage = 0.44 // Example ratio
-    const strokeDashoffset = circumference * (1 - expensePercentage)
+
+    // Individual offsets for a multi-color doughnut
+    const incomeOffset = circumference * (1 - incomePercent)
+    const expenseOffset = circumference * (1 - (incomePercent + expensePercent))
+    const transferOffset = circumference * (1 - (incomePercent + expensePercent + transferPercent))
 
     const fetchBudgetsAndSpending = async () => {
         setLoading(true)
@@ -158,26 +238,37 @@ export default function HomeScreen() {
                 <View style={styles.heroSection}>
                     <View style={[styles.balanceCard, { backgroundColor: theme.card }]}>
                         <Text style={[styles.cardLabel, { color: theme.subtext }]}>Total Balance</Text>
-                        <Text style={[styles.balanceText, { color: theme.text }]}>{stats.balance}</Text>
+                        <Text style={[styles.balanceText, { color: theme.text }]}>
+                            {currencySymbol}{totals.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </Text>
                     </View>
 
-                    <View style={styles.statsContainer}>
-                        <View style={[styles.statsCard, { backgroundColor: theme.card }]}>
+                    <View style={styles.statsGrid}>
+                        <View style={[styles.statsCardShort, { backgroundColor: theme.card }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(46, 204, 113, 0.1)" }]}>
                                 <Text style={{ color: "#2ECC71" }}>↓</Text>
                             </View>
                             <View>
                                 <Text style={[styles.statsLabel, { color: theme.subtext }]}>Income</Text>
-                                <Text style={[styles.statsValue, { color: theme.text }]}>{stats.income}</Text>
+                                <Text style={[styles.statsValue, { color: "#2ECC71" }]}>{currencySymbol}{totals.income.toFixed(0)}</Text>
                             </View>
                         </View>
-                        <View style={[styles.statsCard, { backgroundColor: theme.card }]}>
+                        <View style={[styles.statsCardShort, { backgroundColor: theme.card }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(231, 76, 60, 0.1)" }]}>
                                 <Text style={{ color: "#E74C6C" }}>↑</Text>
                             </View>
                             <View>
                                 <Text style={[styles.statsLabel, { color: theme.subtext }]}>Expense</Text>
-                                <Text style={[styles.statsValue, { color: theme.text }]}>{stats.expense}</Text>
+                                <Text style={[styles.statsValue, { color: "#E74C6C" }]}>{currencySymbol}{totals.expense.toFixed(0)}</Text>
+                            </View>
+                        </View>
+                        <View style={[styles.statsCardShort, { backgroundColor: theme.card, marginTop: 12 }]}>
+                            <View style={[styles.statsIcon, { backgroundColor: "rgba(52, 152, 219, 0.1)" }]}>
+                                <Text style={{ color: "#3498DB" }}>⇄</Text>
+                            </View>
+                            <View>
+                                <Text style={[styles.statsLabel, { color: theme.subtext }]}>Transfer</Text>
+                                <Text style={[styles.statsValue, { color: "#3498DB" }]}>{currencySymbol}{totals.transfer.toFixed(0)}</Text>
                             </View>
                         </View>
                     </View>
@@ -240,7 +331,7 @@ export default function HomeScreen() {
                     <View style={styles.analyticsHeader}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Analytics</Text>
                         <View style={[styles.toggleContainer, { backgroundColor: theme.border }]}>
-                            {["Daily", "Monthly"].map((type) => (
+                            {["Daily", "Weekly", "Monthly", "Yearly"].map((type) => (
                                 <TouchableOpacity
                                     key={type}
                                     onPress={() => setViewType(type)}
@@ -271,37 +362,109 @@ export default function HomeScreen() {
                                         strokeWidth={strokeWidth}
                                         fill="none"
                                     />
-                                    {/* Foreground Circle (Expense) */}
+                                    {/* Income Segment */}
                                     <Circle
                                         cx={center}
                                         cy={center}
                                         r={radius}
-                                        stroke={theme.primary}
+                                        stroke="#2ECC71"
                                         strokeWidth={strokeWidth}
                                         fill="none"
                                         strokeDasharray={circumference}
-                                        strokeDashoffset={strokeDashoffset}
+                                        strokeDashoffset={incomeOffset}
+                                        strokeLinecap="round"
+                                    />
+                                    {/* Expense Segment */}
+                                    <Circle
+                                        cx={center}
+                                        cy={center}
+                                        r={radius}
+                                        stroke="#E74C6C"
+                                        strokeWidth={strokeWidth}
+                                        fill="none"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={expenseOffset}
+                                        strokeLinecap="round"
+                                    />
+                                    {/* Transfer Segment */}
+                                    <Circle
+                                        cx={center}
+                                        cy={center}
+                                        r={radius}
+                                        stroke="#3498DB"
+                                        strokeWidth={strokeWidth}
+                                        fill="none"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={transferOffset}
                                         strokeLinecap="round"
                                     />
                                 </G>
                             </Svg>
                             <View style={styles.chartOverlay}>
-                                <Text style={[styles.chartPercentage, { color: theme.text }]}>44%</Text>
-                                <Text style={[styles.chartLabel, { color: theme.subtext }]}>Expense Ratio</Text>
+                                <Text style={[styles.chartPercentage, { color: theme.text }]}>
+                                    {totalActivity > 0 ? "Totals" : "0%"}
+                                </Text>
+                                <Text style={[styles.chartLabel, { color: theme.subtext }]}>
+                                    {viewType} Overview
+                                </Text>
                             </View>
                         </View>
 
                         <View style={styles.chartLegend}>
                             <View style={styles.legendItem}>
-                                <View style={[styles.legendDot, { backgroundColor: theme.primary }]} />
-                                <Text style={[styles.legendText, { color: theme.text }]}>Income (56%)</Text>
+                                <View style={[styles.legendDot, { backgroundColor: "#2ECC71" }]} />
+                                <Text style={[styles.legendText, { color: theme.text }]}>Income ({(incomePercent * 100).toFixed(0)}%)</Text>
                             </View>
                             <View style={styles.legendItem}>
-                                <View style={[styles.legendDot, { backgroundColor: "#E2E8F0" }]} />
-                                <Text style={[styles.legendText, { color: theme.text }]}>Expense (44%)</Text>
+                                <View style={[styles.legendDot, { backgroundColor: "#E74C6C" }]} />
+                                <Text style={[styles.legendText, { color: theme.text }]}>Expense ({(expensePercent * 100).toFixed(0)}%)</Text>
+                            </View>
+                            <View style={styles.legendItem}>
+                                <View style={[styles.legendDot, { backgroundColor: "#3498DB" }]} />
+                                <Text style={[styles.legendText, { color: theme.text }]}>Transfer ({(transferPercent * 100).toFixed(0)}%)</Text>
                             </View>
                         </View>
                     </View>
+                </View>
+
+                {/* Recent Transactions Section */}
+                <View style={styles.recentTransactionsSection}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Transactions</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate("Record")}>
+                            <Text style={[styles.seeMoreBtn, { color: theme.primary }]}>See More</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {recentTransactions.length === 0 ? (
+                        <View style={[styles.emptyState, { backgroundColor: theme.card }]}>
+                            <Text style={{ color: theme.subtext }}>No transactions yet.</Text>
+                        </View>
+                    ) : (
+                        recentTransactions.map((item) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={[styles.transactionItem, { backgroundColor: theme.card }]}
+                                onPress={() => navigation.navigate("RecordDetail", { record: item })}
+                            >
+                                <View style={styles.transactionLeft}>
+                                    <View style={[styles.iconBox, { backgroundColor: theme.primary + "15" }]}>
+                                        <Text style={{ fontSize: 18 }}>📝</Text>
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.transactionCategory, { color: theme.text }]}>{item.category}</Text>
+                                        <Text style={[styles.transactionDate, { color: theme.subtext }]}>{item.date}</Text>
+                                    </View>
+                                </View>
+                                <Text style={[
+                                    styles.transactionAmount,
+                                    { color: (item.type === "Expense" || item.type === "Transfer") ? "#E74C6C" : "#2ECC71" }
+                                ]}>
+                                    {(item.type === "Expense" || item.type === "Transfer") ? "-" : "+"}{currencySymbol}{parseFloat(item.amount).toFixed(2)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))
+                    )}
                 </View>
 
             </ScrollView>
@@ -388,12 +551,13 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: "bold",
     },
-    statsContainer: {
+    statsGrid: {
         flexDirection: "row",
+        flexWrap: "wrap",
         justifyContent: "space-between",
     },
-    statsCard: {
-        flex: 0.48,
+    statsCardShort: {
+        width: (width - 55) / 2,
         padding: 16,
         borderRadius: 20,
         flexDirection: "row",
@@ -410,14 +574,14 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 12,
+        marginRight: 10,
     },
     statsLabel: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: "600",
     },
     statsValue: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "bold",
     },
     analyticsSection: {

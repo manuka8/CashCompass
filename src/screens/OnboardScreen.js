@@ -7,9 +7,9 @@ import {
     Animated,
     StatusBar,
     TouchableOpacity,
-    SafeAreaView,
     ImageBackground
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 const { width, height } = Dimensions.get("window")
 

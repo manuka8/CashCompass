@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
-  StatusBar,
+  StatusBar
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { supabase } from "../services/supabase"
 import { Dropdown } from 'react-native-element-dropdown';
 import { COUNTRIES, CURRENCIES } from "../utils/constants"

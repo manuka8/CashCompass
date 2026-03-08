@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     FlatList,
     StatusBar,
@@ -13,6 +12,7 @@ import {
     Dimensions,
     ScrollView
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
