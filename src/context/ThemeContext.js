@@ -5,7 +5,7 @@ export const ThemeContext = createContext();
 export const THEMES = {
     light: {
         mode: 'light',
-        primary: '#2ECC71',
+        primary: '#1bac57ff',
         secondary: '#27AE60',
         background: '#F5F7FA',
         card: '#FFFFFF',
