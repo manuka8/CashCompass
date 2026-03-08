@@ -1,12 +1,13 @@
 import { createDrawerNavigator } from "@react-navigation/drawer"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
-import { useContext } from "react"
+import { useContext, useState, useEffect } from "react"
 import { View, ActivityIndicator, Text } from "react-native"
 import { AuthContext } from "../context/AuthContext"
 import { ThemeProvider, ThemeContext } from "../context/ThemeContext"
 import CustomDrawerContent from "./CustomDrawerContent"
 
+import SplashScreen from "../screens/SplashScreen"
 import OnboardScreen from "../screens/OnboardScreen"
 import LoginScreen from "../screens/LoginScreen"
 import RegisterScreen from "../screens/RegisterScreen"
@@ -64,12 +65,25 @@ function MainDrawerNavigator() {
 
 export default function AppNavigator() {
   const { user, loading } = useContext(AuthContext)
+  const [showSplash, setShowSplash] = useState(true)
 
-  if (loading) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false)
+    }, 4000) // 3 seconds timeout for splash gif
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading || showSplash) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <ThemeProvider>
+        {showSplash ? <SplashScreen /> : (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" />
+          </View>
+        )}
+      </ThemeProvider>
     )
   }
 
