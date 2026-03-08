@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     TextInput,
     ScrollView,
@@ -12,6 +11,7 @@ import {
     ActivityIndicator,
     StatusBar
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from "react-native-element-dropdown"
 import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated"
 import { ThemeContext } from "../context/ThemeContext"
