@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react"
+import React, { useState, useContext, useEffect, useCallback } from "react"
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { G, Circle } from "react-native-svg"
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { ThemeContext, THEMES } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
@@ -39,6 +39,14 @@ export default function HomeScreen() {
 
     const currencySymbol = getCurrencySymbol(user?.user_metadata?.currency)
 
+    // Helper to get local YYYY-MM-DD
+    const getLocalDateString = (date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
     // Dynamic Totals calculation based on transactions
     const calculateTotals = (data) => {
         let income = 0
@@ -46,7 +54,7 @@ export default function HomeScreen() {
         let transfer = 0
 
         data.forEach(t => {
-            const amt = parseFloat(t.amount)
+            const amt = parseFloat(t.amount) || 0
             if (t.type === "Income") income += amt
             else if (t.type === "Expense") expense += amt
             else if (t.type === "Transfer") transfer += amt
@@ -60,7 +68,7 @@ export default function HomeScreen() {
         })
     }
 
-    const fetchHomeData = async () => {
+    const fetchHomeData = useCallback(async () => {
         setLoading(true)
         try {
             const now = new Date()
@@ -81,7 +89,7 @@ export default function HomeScreen() {
                 .from("transactions")
                 .select("*")
                 .eq("user_id", user.id)
-                .gte("date", startDate.toISOString().split('T')[0])
+                .gte("date", getLocalDateString(startDate))
                 .order("date", { ascending: false })
 
             if (periodError) throw periodError
@@ -102,15 +110,17 @@ export default function HomeScreen() {
 
         } catch (error) {
             console.error("Error fetching home data:", error)
-            Alert.alert("Error", "Could not fetch dashboard data.")
         } finally {
             setLoading(false)
         }
-    }
+    }, [viewType, user.id])
 
-    useEffect(() => {
-        fetchHomeData()
-    }, [viewType])
+    // Use useFocusEffect to refresh when the screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            fetchHomeData()
+        }, [fetchHomeData])
+    )
 
     // Chart Logic
     const totalActivity = totals.income + totals.expense + totals.transfer
@@ -124,12 +134,17 @@ export default function HomeScreen() {
     const radius = center - strokeWidth
     const circumference = 2 * Math.PI * radius
 
-    // Individual offsets for a multi-color doughnut
-    const incomeOffset = circumference * (1 - incomePercent)
-    const expenseOffset = circumference * (1 - (incomePercent + expensePercent))
-    const transferOffset = circumference * (1 - (incomePercent + expensePercent + transferPercent))
+    // Individual offsets and rotations for a multi-color doughnut
+    // Segments are handled by rotating each segments start point
+    const incomeStroke = circumference * (1 - incomePercent) || circumference
+    const expenseStroke = circumference * (1 - expensePercent) || circumference
+    const transferStroke = circumference * (1 - transferPercent) || circumference
 
-    const fetchBudgetsAndSpending = async () => {
+    const incomeRotation = -90
+    const expenseRotation = incomeRotation + (incomePercent * 360)
+    const transferRotation = expenseRotation + (expensePercent * 360)
+
+    const fetchBudgetsAndSpending = useCallback(async () => {
         setLoading(true)
         // Fetch budgets
         const { data: budgetData } = await supabase
@@ -167,8 +182,8 @@ export default function HomeScreen() {
                 .from("transactions")
                 .select("amount")
                 .eq("user_id", user.id)
-                .gte("date", startDate.toISOString().split('T')[0])
-                .lte("date", endDate.toISOString().split('T')[0])
+                .gte("date", getLocalDateString(startDate))
+                .lte("date", getLocalDateString(endDate))
 
             if (b.type === "Category") {
                 query = query.eq("category", b.category)
@@ -196,11 +211,13 @@ export default function HomeScreen() {
         setBudgets(budgetData)
         setBudgetStats(stats)
         setLoading(false)
-    }
+    }, [user.id])
 
-    useEffect(() => {
-        fetchBudgetsAndSpending()
-    }, [])
+    useFocusEffect(
+        useCallback(() => {
+            fetchBudgetsAndSpending()
+        }, [fetchBudgetsAndSpending])
+    )
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -365,41 +382,53 @@ export default function HomeScreen() {
                                         fill="none"
                                     />
                                     {/* Income Segment */}
-                                    <Circle
-                                        cx={center}
-                                        cy={center}
-                                        r={radius}
-                                        stroke="#2ECC71"
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                        strokeDasharray={circumference}
-                                        strokeDashoffset={incomeOffset}
-                                        strokeLinecap="round"
-                                    />
+                                    {totalActivity > 0 && incomePercent > 0 && (
+                                        <G rotation={incomeRotation} origin={`${center}, ${center}`}>
+                                            <Circle
+                                                cx={center}
+                                                cy={center}
+                                                r={radius}
+                                                stroke="#2ECC71"
+                                                strokeWidth={strokeWidth}
+                                                fill="none"
+                                                strokeDasharray={circumference}
+                                                strokeDashoffset={incomeStroke}
+                                                strokeLinecap="round"
+                                            />
+                                        </G>
+                                    )}
                                     {/* Expense Segment */}
-                                    <Circle
-                                        cx={center}
-                                        cy={center}
-                                        r={radius}
-                                        stroke="#E74C6C"
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                        strokeDasharray={circumference}
-                                        strokeDashoffset={expenseOffset}
-                                        strokeLinecap="round"
-                                    />
+                                    {totalActivity > 0 && expensePercent > 0 && (
+                                        <G rotation={expenseRotation} origin={`${center}, ${center}`}>
+                                            <Circle
+                                                cx={center}
+                                                cy={center}
+                                                r={radius}
+                                                stroke="#E74C6C"
+                                                strokeWidth={strokeWidth}
+                                                fill="none"
+                                                strokeDasharray={circumference}
+                                                strokeDashoffset={expenseStroke}
+                                                strokeLinecap="round"
+                                            />
+                                        </G>
+                                    )}
                                     {/* Transfer Segment */}
-                                    <Circle
-                                        cx={center}
-                                        cy={center}
-                                        r={radius}
-                                        stroke="#3498DB"
-                                        strokeWidth={strokeWidth}
-                                        fill="none"
-                                        strokeDasharray={circumference}
-                                        strokeDashoffset={transferOffset}
-                                        strokeLinecap="round"
-                                    />
+                                    {totalActivity > 0 && transferPercent > 0 && (
+                                        <G rotation={transferRotation} origin={`${center}, ${center}`}>
+                                            <Circle
+                                                cx={center}
+                                                cy={center}
+                                                r={radius}
+                                                stroke="#3498DB"
+                                                strokeWidth={strokeWidth}
+                                                fill="none"
+                                                strokeDasharray={circumference}
+                                                strokeDashoffset={transferStroke}
+                                                strokeLinecap="round"
+                                            />
+                                        </G>
+                                    )}
                                 </G>
                             </Svg>
                             <View style={styles.chartOverlay}>
