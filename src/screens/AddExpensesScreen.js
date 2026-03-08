@@ -113,8 +113,8 @@ export default function AddExpensesScreen({ navigation }) {
                 .from("transactions")
                 .select("amount")
                 .eq("user_id", user.id)
-                .gte("date", startDate.toISOString().split('T')[0])
-                .lte("date", endDate.toISOString().split('T')[0])
+                .gte("date", getLocalDateString(startDate))
+                .lte("date", getLocalDateString(endDate))
 
             if (b.type === "Category") {
                 query = query.eq("category", b.category)
@@ -159,6 +159,14 @@ export default function AddExpensesScreen({ navigation }) {
         setSubCategory(null)
     }
 
+    // Helper to get local YYYY-MM-DD
+    const getLocalDateString = (date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
     const handleSave = async () => {
         if (!amount || !category || !subCategory) {
             Alert.alert("Error", "Please fill in amount, category, and sub-category")
@@ -167,7 +175,7 @@ export default function AddExpensesScreen({ navigation }) {
 
         setLoading(true)
         const now = new Date()
-        const date = now.toISOString().split('T')[0]
+        const date = getLocalDateString(now)
         const time = now.toTimeString().split(' ')[0]
 
         const { error } = await supabase.from("transactions").insert({
