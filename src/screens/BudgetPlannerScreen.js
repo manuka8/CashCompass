@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ScrollView,
     TextInput,
@@ -13,6 +12,7 @@ import {
     Modal,
     Dimensions
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
@@ -128,6 +128,26 @@ export default function BudgetPlannerScreen() {
         setStartDate("")
         setEndDate("")
         setIsBlocking(false)
+    }
+
+    const quickSelectDate = (range) => {
+        const now = new Date()
+        let start = new Date()
+        let end = new Date()
+
+        if (range === "Today") {
+            // Both are today
+        } else if (range === "Week") {
+            const day = now.getDay()
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1) // Adjust to Monday
+            start = new Date(now.setDate(diff))
+            end = new Date(now.setDate(diff + 6)) // End on Sunday
+        } else if (range === "30Days") {
+            end = new Date(now.setDate(now.getDate() + 30))
+        }
+
+        setStartDate(start.toISOString().split('T')[0])
+        setEndDate(end.toISOString().split('T')[0])
     }
 
     const deleteBudget = async (id) => {
@@ -276,26 +296,40 @@ export default function BudgetPlannerScreen() {
                             </View>
 
                             {period === "Specified Date" && (
-                                <View style={styles.dateRangeRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.label, { color: theme.subtext }]}>From</Text>
-                                        <TextInput
-                                            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-                                            placeholder="YYYY-MM-DD"
-                                            placeholderTextColor={theme.subtext}
-                                            value={startDate}
-                                            onChangeText={setStartDate}
-                                        />
+                                <View style={styles.formSection}>
+                                    <View style={styles.dateRangeRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.label, { color: theme.subtext }]}>From</Text>
+                                            <TextInput
+                                                style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                                                placeholder="YYYY-MM-DD"
+                                                placeholderTextColor={theme.subtext}
+                                                value={startDate}
+                                                onChangeText={setStartDate}
+                                            />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.label, { color: theme.subtext }]}>To</Text>
+                                            <TextInput
+                                                style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                                                placeholder="YYYY-MM-DD"
+                                                placeholderTextColor={theme.subtext}
+                                                value={endDate}
+                                                onChangeText={setEndDate}
+                                            />
+                                        </View>
                                     </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={[styles.label, { color: theme.subtext }]}>To</Text>
-                                        <TextInput
-                                            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-                                            placeholder="YYYY-MM-DD"
-                                            placeholderTextColor={theme.subtext}
-                                            value={endDate}
-                                            onChangeText={setEndDate}
-                                        />
+
+                                    <View style={styles.quickActionRow}>
+                                        <TouchableOpacity style={[styles.quickBtn, { backgroundColor: theme.primary + "20" }]} onPress={() => quickSelectDate("Today")}>
+                                            <Text style={[styles.quickBtnText, { color: theme.primary }]}>Today</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={[styles.quickBtn, { backgroundColor: theme.primary + "20" }]} onPress={() => quickSelectDate("Week")}>
+                                            <Text style={[styles.quickBtnText, { color: theme.primary }]}>This Week</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={[styles.quickBtn, { backgroundColor: theme.primary + "20" }]} onPress={() => quickSelectDate("30Days")}>
+                                            <Text style={[styles.quickBtnText, { color: theme.primary }]}>Next 30 Days</Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
                             )}
@@ -387,7 +421,10 @@ const styles = StyleSheet.create({
     amountLabel: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
     budgetAmount: { fontSize: 22, fontWeight: "800" },
     dualAmountRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
-    dateRangeRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
+    dateRangeRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
+    quickActionRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+    quickBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+    quickBtnText: { fontSize: 11, fontWeight: "700" },
     blockingBadge: { backgroundColor: "#FF4D4D20", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     blockingText: { color: "#FF4D4D", fontSize: 10, fontWeight: "bold" },
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
