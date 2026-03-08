@@ -501,8 +501,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     logo: {
-        width: 120,
-        height: 30,
+        width: 150,
+        height: 50,
         marginLeft: 12,
     },
     headerRight: {
