@@ -462,7 +462,7 @@ export default function HomeScreen() {
                 <View style={styles.recentTransactionsSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Transactions</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate("Record")}>
+                        <TouchableOpacity onPress={() => navigation.navigate("Records")}>
                             <Text style={[styles.seeMoreBtn, { color: theme.primary }]}>See More</Text>
                         </TouchableOpacity>
                     </View>

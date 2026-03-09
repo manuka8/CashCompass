@@ -78,7 +78,7 @@ export default function RegisterScreen({ navigation }) {
       registerBtnScale.value = withSpring(1)
     })
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -92,6 +92,11 @@ export default function RegisterScreen({ navigation }) {
     if (error) {
       Alert.alert("Registration Failed", error.message)
     } else {
+      // If auto-login happened (session is not null), sign out to force manual login as requested
+      if (data?.session) {
+        await supabase.auth.signOut()
+      }
+
       Alert.alert("Success", "Account created! Please log in.", [
         { text: "OK", onPress: () => navigation.navigate("Login") }
       ])
