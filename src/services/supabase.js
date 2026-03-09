@@ -9,8 +9,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("YOUR_SUPABASE"
 }
 
 export const supabase = createClient(
-    SUPABASE_URL || "https://sshtkpfxhwugaxpahrbg.supabase.co",
-    SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzaHRrcGZ4aHd1Z2F4cGFocmJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjAwMTksImV4cCI6MjA4ODQzNjAxOX0.uAc12sdCH2dEkeT4vxb839hs9SegNAPjEyigHLe_8Ss",
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
     {
         auth: {
             storage: AsyncStorage,
