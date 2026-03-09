@@ -122,7 +122,7 @@
 
 ```bash
 git clone https://github.com/manuka8/CashCompass.git
-cd cash-compass
+cd CashCompass
 ```
 
 2. **Install dependencies**
