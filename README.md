@@ -197,9 +197,3 @@ This project is licensed under the **MIT License** – see the LICENSE file for 
 
 For support or feedback:
 📧 Email: [manukamayurajith2001@gmail.com](mailto:manukamayurajith2001@gmail.com)
-
----
-
-If you want, I can **create a fully formatted Markdown README with all 13 screenshots properly numbered and ready to drop in your repo**, so it will look **professional on GitHub**.
-
-Do you want me to do that next?
