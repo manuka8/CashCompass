@@ -88,6 +88,7 @@ export default function AddExpensesScreen({ navigation }) {
         }
 
         // Check each relevant budget
+        let foundWarning = false
         for (let b of relevantBudgets) {
             // Calculate current total for the period
             const now = new Date()
@@ -131,18 +132,26 @@ export default function AddExpensesScreen({ navigation }) {
 
             if (b.max_amount && projectedTotal > b.max_amount) {
                 setBudgetWarning(`🚨 Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${b.max_amount.toLocaleString()}.`)
+                foundWarning = true
                 if (b.is_blocking) {
                     setIsBlocked(true)
                     return // Stop checking if blocked
                 }
+                break
             } else if (b.min_amount && projectedTotal < b.min_amount) {
                 setBudgetWarning(`💡 Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${b.min_amount.toLocaleString()}. Keep going!`)
+                foundWarning = true
+                break
             } else if (b.max_amount && projectedTotal > b.max_amount * 0.8) {
                 setBudgetWarning(`⚠️ Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${b.max_amount.toLocaleString()}).`)
+                foundWarning = true
+                break
             }
         }
-        setBudgetWarning(null)
-        setIsBlocked(false)
+        if (!foundWarning) {
+            setBudgetWarning(null)
+            setIsBlocked(false)
+        }
     }
 
     useEffect(() => {

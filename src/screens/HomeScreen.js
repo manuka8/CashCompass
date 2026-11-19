@@ -281,7 +281,7 @@ export default function HomeScreen() {
                                 <Text style={[styles.statsValue, { color: "#E74C6C" }]}>{currencySymbol}{totals.expense.toFixed(0)}</Text>
                             </View>
                         </View>
-                        <View style={[styles.statsCardShort, { backgroundColor: theme.card, marginTop: 12 }]}>
+                        <View style={[styles.statsCardShort, { backgroundColor: theme.card, marginTop: 12, width: "100%" }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(52, 152, 219, 0.1)" }]}>
                                 <Text style={{ color: "#3498DB" }}>⇄</Text>
                             </View>

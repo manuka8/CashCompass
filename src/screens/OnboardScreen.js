@@ -48,6 +48,25 @@ const ONBOARD_DATA = [
     }
 ]
 
+const BackgroundSlide = ({ item, index, scrollX }) => {
+    const backgroundStyle = useAnimatedStyle(() => {
+        const opacity = interpolate(
+            scrollX.value,
+            [(index - 1) * width, index * width, (index + 1) * width],
+            [0, 1, 0],
+            Extrapolate.CLAMP
+        )
+        return { opacity }
+    })
+    return (
+        <Animated.Image
+            source={item.image}
+            style={[StyleSheet.absoluteFill, backgroundStyle, { width, height }]}
+            resizeMode="cover"
+        />
+    )
+}
+
 const OnboardItem = ({ item, index, scrollX, theme }) => {
     const cardStyle = useAnimatedStyle(() => {
         const translateY = interpolate(
@@ -138,39 +157,15 @@ export default function OnboardScreen({ navigation }) {
         itemVisiblePercentThreshold: 50
     }).current
 
-    const renderBackground = () => {
-        return ONBOARD_DATA.map((item, index) => {
-            const backgroundStyle = useAnimatedStyle(() => {
-                const opacity = interpolate(
-                    scrollX.value,
-                    [(index - 1) * width, index * width, (index + 1) * width],
-                    [0, 1, 0],
-                    Extrapolate.CLAMP
-                )
-
-                return {
-                    opacity,
-                }
-            })
-
-            return (
-                <Animated.Image
-                    key={`bg-${item.id}`}
-                    source={item.image}
-                    style={[StyleSheet.absoluteFill, backgroundStyle, { width, height }]}
-                    resizeMode="cover"
-                />
-            )
-        })
-    }
-
     return (
         <View style={styles.container}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
             {/* Background Layer */}
             <View style={StyleSheet.absoluteFill}>
-                {renderBackground()}
+                {ONBOARD_DATA.map((item, index) => (
+                    <BackgroundSlide key={`bg-${item.id}`} item={item} index={index} scrollX={scrollX} />
+                ))}
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.4)" }]} />
             </View>
 

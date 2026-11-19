@@ -88,7 +88,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.sectionTitle, { color: theme.subtext }]}>PREFERENCES</Text>
                 <View style={[styles.settingsList, { backgroundColor: theme.card }]}>
 
-                    <View style={[styles.settingItem, { borderBottomColor: theme.border }]}>
+                    <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
                         <View style={styles.settingLabelContainer}>
                             <Text style={styles.settingIcon}>🌍</Text>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>Country</Text>
@@ -112,7 +112,7 @@ export default function SettingsScreen() {
                         />
                     </View>
 
-                    <View style={styles.settingItem}>
+                    <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingLabelContainer}>
                             <Text style={styles.settingIcon}>💰</Text>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>Currency</Text>
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.sectionTitle, { color: theme.subtext }]}>APP SETTINGS</Text>
                 <View style={[styles.settingsList, { backgroundColor: theme.card }]}>
                     <TouchableOpacity
-                        style={[styles.settingItem, { borderBottomColor: theme.border }]}
+                        style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: theme.border }]}
                         onPress={toggleTheme}
                     >
                         <View style={styles.settingLabelContainer}>
@@ -153,7 +153,7 @@ export default function SettingsScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <View style={styles.settingItem}>
+                    <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingLabelContainer}>
                             <Text style={styles.settingIcon}>ℹ️</Text>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>App Version</Text>
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         paddingVertical: 18,
-        borderBottomWidth: 1,
     },
     settingLabelContainer: {
         flexDirection: "row",

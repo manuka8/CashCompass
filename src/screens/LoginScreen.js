@@ -105,7 +105,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Background Accent */}
       <View style={[styles.bgAccent, { backgroundColor: theme.primary }]} />
@@ -143,7 +143,7 @@ export default function LoginScreen({ navigation }) {
             >
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: theme.text }]}>Email Address</Text>
-                <Animated.View style={[styles.inputWrapper, emailAnimatedStyle]}>
+                <Animated.View style={[styles.inputWrapper, { backgroundColor: theme.card }, emailAnimatedStyle]}>
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="nathan@example.com"
@@ -161,7 +161,7 @@ export default function LoginScreen({ navigation }) {
 
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: theme.text }]}>Password</Text>
-                <Animated.View style={[styles.inputWrapper, passwordAnimatedStyle]}>
+                <Animated.View style={[styles.inputWrapper, { backgroundColor: theme.card }, passwordAnimatedStyle]}>
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••"
@@ -302,7 +302,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   inputWrapper: {
-    backgroundColor: "#F8FAFC",
     borderRadius: 22,
     borderWidth: 1.5,
   },

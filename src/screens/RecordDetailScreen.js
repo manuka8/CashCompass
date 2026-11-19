@@ -25,8 +25,8 @@ export default function RecordDetailScreen({ route, navigation }) {
     const isExpense = record.type === "Expense" || record.type === "Transfer"
     const isIncome = record.type === "Income"
 
-    const DetailItem = ({ label, value, icon }) => (
-        <View style={[styles.detailItem, { borderBottomColor: theme.border }]}>
+    const DetailItem = ({ label, value, icon, isLast }) => (
+        <View style={[styles.detailItem, { borderBottomColor: theme.border, borderBottomWidth: isLast ? 0 : 1 }]}>
             <View style={styles.detailLeft}>
                 <View style={[styles.detailIconBox, { backgroundColor: theme.primary + "10" }]}>
                     <Text style={styles.detailIcon}>{icon}</Text>
@@ -76,7 +76,7 @@ export default function RecordDetailScreen({ route, navigation }) {
                     <DetailItem label="Category" value={record.category} icon="📁" />
                     <DetailItem label="Sub-category" value={record.sub_category} icon="📄" />
                     <DetailItem label="Note" value={record.note || "No notes added"} icon="📝" />
-                    <DetailItem label="Created At" value={new Date(record.created_at || Date.now()).toLocaleDateString()} icon="📅" />
+                    <DetailItem label="Created At" value={new Date(record.created_at || Date.now()).toLocaleDateString()} icon="📅" isLast />
                 </View>
 
                 {/* Action Buttons */}
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         paddingVertical: 18,
-        borderBottomWidth: 1,
     },
     detailLeft: { flexDirection: "row", alignItems: "center" },
     detailIconBox: {

@@ -154,7 +154,8 @@ export default function RecordScreen() {
                         key={range}
                         style={[
                             styles.quickTab,
-                            dateRange === range && { backgroundColor: theme.primary }
+                            { borderColor: theme.border },
+                            dateRange === range && { backgroundColor: theme.primary, borderColor: theme.primary }
                         ]}
                         onPress={() => setDateRange(range)}
                     >
@@ -316,7 +317,6 @@ const styles = StyleSheet.create({
         marginRight: 10,
         backgroundColor: "transparent",
         borderWidth: 1,
-        borderColor: "#E2E8F0",
     },
     quickTabText: { fontWeight: "600", fontSize: 13 },
     listContent: { padding: 20, paddingBottom: 100 },
