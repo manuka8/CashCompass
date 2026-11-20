@@ -1,0 +1,102 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String         @map("password_hash")
+  fullName     String?        @map("full_name")
+  username     String?        @unique
+  bio          String?
+  country      String?
+  currency     String?        @default("USD")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  transactions  Transaction[]
+  budgets       Budget[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+enum TransactionType {
+  Income
+  Expense
+  Transfer
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  amount      Float
+  type        TransactionType
+  category    String
+  subCategory String          @map("sub_category")
+  note        String?
+  date        String
+  time        String
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("transactions")
+}
+
+enum BudgetType {
+  Expense
+  Income
+  Category
+}
+
+enum BudgetPeriod {
+  Daily
+  Weekly
+  Monthly
+  Yearly
+  SpecifiedDate @map("Specified Date")
+}
+
+model Budget {
+  id         String       @id @default(uuid())
+  userId     String       @map("user_id")
+  type       BudgetType
+  period     BudgetPeriod
+  category   String?
+  minAmount  Float?       @map("min_amount")
+  maxAmount  Float?       @map("max_amount")
+  startDate  String?      @map("start_date")
+  endDate    String?      @map("end_date")
+  isBlocking Boolean      @default(false) @map("is_blocking")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("budgets")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   @default("Budget Warning")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
