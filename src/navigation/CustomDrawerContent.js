@@ -2,15 +2,14 @@ import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Image } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { ThemeContext } from '../context/ThemeContext';
-import { supabase } from '../services/supabase';
 import { AuthContext } from '../context/AuthContext';
 
 export default function CustomDrawerContent(props) {
     const { theme, toggleTheme } = useContext(ThemeContext);
-    const { user } = useContext(AuthContext);
+    const { user, logout } = useContext(AuthContext);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        await logout();
     };
 
     return (

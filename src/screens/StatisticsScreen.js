@@ -15,7 +15,7 @@ import { useNavigation } from "@react-navigation/native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 import { LineChart, BarChart } from "react-native-chart-kit"
 import * as Print from "expo-print"
 import * as Sharing from "expo-sharing"
@@ -37,13 +37,7 @@ export default function StatisticsScreen() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const { data, error } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("date", { ascending: true })
-
-            if (error) throw error
+            const data = await api.transactions.getAll({ limit: 1000 })
             setTransactions(data || [])
         } catch (error) {
             console.error("Error fetching transactions:", error)

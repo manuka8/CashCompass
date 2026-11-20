@@ -15,31 +15,32 @@ import { useNavigation } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 import { COUNTRIES, CURRENCIES } from "../utils/constants"
 
 export default function SettingsScreen() {
     const { theme, toggleTheme } = useContext(ThemeContext)
-    const { user } = useContext(AuthContext)
+    const { user, updateUser } = useContext(AuthContext)
     const navigation = useNavigation()
 
     const [loading, setLoading] = useState(false)
-    const [country, setCountry] = useState(user?.user_metadata?.country || null)
-    const [currency, setCurrency] = useState(user?.user_metadata?.currency || null)
+    const [country, setCountry] = useState(user?.user_metadata?.country || user?.country || null)
+    const [currency, setCurrency] = useState(user?.user_metadata?.currency || user?.currency || null)
 
     const handleUpdatePreference = async (key, value) => {
         setLoading(true)
-        const { error } = await supabase.auth.updateUser({
-            data: { [key]: value }
-        })
-
-        if (error) {
-            Alert.alert("Update Failed", error.message)
-        } else {
+        try {
+            await api.users.updateProfile({ [key]: value })
+            if (updateUser) {
+                await updateUser({ [key]: value })
+            }
             if (key === 'country') setCountry(value)
             else setCurrency(value)
+        } catch (error) {
+            Alert.alert("Update Failed", error.message || "Failed to update preference")
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (

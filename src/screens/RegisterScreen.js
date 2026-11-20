@@ -22,7 +22,7 @@ import Animated, {
   useSharedValue,
   withSpring
 } from "react-native-reanimated"
-import { supabase } from "../services/supabase"
+import { AuthContext } from "../context/AuthContext"
 import { Dropdown } from 'react-native-element-dropdown';
 import { COUNTRIES, CURRENCIES } from "../utils/constants"
 import { ThemeContext } from "../context/ThemeContext"
@@ -31,6 +31,7 @@ const { width, height } = Dimensions.get("window")
 
 export default function RegisterScreen({ navigation }) {
   const { theme } = useContext(ThemeContext)
+  const { register: registerUser } = useContext(AuthContext)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -78,30 +79,22 @@ export default function RegisterScreen({ navigation }) {
       registerBtnScale.value = withSpring(1)
     })
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          country,
-          currency,
-        }
-      }
-    })
-
-    if (error) {
-      Alert.alert("Registration Failed", error.message)
-    } else {
-      // If auto-login happened (session is not null), sign out to force manual login as requested
-      if (data?.session) {
-        await supabase.auth.signOut()
-      }
+    try {
+      await registerUser({
+        email: email.trim(),
+        password,
+        country,
+        currency,
+      })
 
       Alert.alert("Success", "Account created! Please log in.", [
         { text: "OK", onPress: () => navigation.navigate("Login") }
       ])
+    } catch (error) {
+      Alert.alert("Registration Failed", error.message || "Failed to create account")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (

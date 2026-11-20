@@ -24,13 +24,14 @@ import Animated, {
   withSequence,
   withTiming
 } from "react-native-reanimated"
-import { supabase } from "../services/supabase"
+import { AuthContext } from "../context/AuthContext"
 import { ThemeContext } from "../context/ThemeContext"
 
 const { width, height } = Dimensions.get("window")
 
 export default function LoginScreen({ navigation }) {
   const { theme } = useContext(ThemeContext)
+  const { login: loginUser } = useContext(AuthContext)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -92,15 +93,13 @@ export default function LoginScreen({ navigation }) {
       loginBtnScale.value = withSpring(1)
     })
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-    if (error) {
-      Alert.alert("Login Failed", error.message)
+    try {
+      await loginUser(email.trim(), password)
+    } catch (error) {
+      Alert.alert("Login Failed", error.message || "Invalid email or password")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (

@@ -17,7 +17,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
 import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES, getCurrencySymbol } from "../utils/constants"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 import { AuthContext } from "../context/AuthContext"
 
 const { height } = Dimensions.get("window")
@@ -47,34 +47,27 @@ export default function RecordScreen() {
     const fetchTransactions = async () => {
         setLoading(true)
         try {
-            let query = supabase
-                .from("transactions")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("date", { ascending: false })
-                .order("time", { ascending: false })
-
-            if (filterType) query = query.eq("type", filterType)
-            if (filterCategory) query = query.eq("category", filterCategory)
-            if (filterSubCategory) query = query.eq("sub_category", filterSubCategory)
-            if (minAmount) query = query.gte("amount", parseFloat(minAmount))
-            if (maxAmount) query = query.lte("amount", parseFloat(maxAmount))
+            const filters = {}
+            if (filterType) filters.type = filterType
+            if (filterCategory) filters.category = filterCategory
+            if (filterSubCategory) filters.subCategory = filterSubCategory
+            if (minAmount) filters.minAmount = parseFloat(minAmount)
+            if (maxAmount) filters.maxAmount = parseFloat(maxAmount)
 
             const now = new Date()
             if (dateRange === "Today") {
                 const today = now.toISOString().split('T')[0]
-                query = query.eq("date", today)
+                filters.startDate = today
+                filters.endDate = today
             } else if (dateRange === "Month") {
                 const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-                query = query.gte("date", firstDay)
+                filters.startDate = firstDay
             } else if (dateRange === "Year") {
                 const firstDay = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
-                query = query.gte("date", firstDay)
+                filters.startDate = firstDay
             }
 
-            const { data, error } = await query
-
-            if (error) throw error
+            const data = await api.transactions.getAll(filters)
             setTransactions(data || [])
         } catch (error) {
             console.error("Error fetching transactions:", error)

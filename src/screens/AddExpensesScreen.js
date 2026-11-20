@@ -16,7 +16,7 @@ import { Dropdown } from "react-native-element-dropdown"
 import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated"
 import { ThemeContext } from "../context/ThemeContext"
 import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES, getCurrencySymbol } from "../utils/constants"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 import { AuthContext } from "../context/AuthContext"
 
 const { width } = Dimensions.get("window")
@@ -54,12 +54,12 @@ export default function AddExpensesScreen({ navigation }) {
     }, [activeTab])
 
     const fetchBudgets = async () => {
-        const { data, error } = await supabase
-            .from("budgets")
-            .select("*")
-            .eq("user_id", user.id)
-
-        if (!error) setBudgets(data || [])
+        try {
+            const data = await api.budgets.getAll()
+            if (data) setBudgets(data || [])
+        } catch (err) {
+            console.error("Failed to fetch budgets:", err)
+        }
     }
 
     useEffect(() => {
@@ -90,7 +90,6 @@ export default function AddExpensesScreen({ navigation }) {
         // Check each relevant budget
         let foundWarning = false
         for (let b of relevantBudgets) {
-            // Calculate current total for the period
             const now = new Date()
             let startDate = new Date()
             let endDate = new Date()
@@ -104,46 +103,47 @@ export default function AddExpensesScreen({ navigation }) {
             } else if (b.period === "Yearly") {
                 startDate = new Date(now.getFullYear(), 0, 1)
                 endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-            } else if (b.period === "Specified Date") {
-                startDate = new Date(b.start_date)
-                endDate = new Date(b.end_date)
+            } else if (b.period === "Specified Date" || b.period === "SpecifiedDate") {
+                startDate = new Date(b.startDate || b.start_date)
+                endDate = new Date(b.endDate || b.end_date)
                 endDate.setHours(23, 59, 59, 999)
             }
 
-            let query = supabase
-                .from("transactions")
-                .select("amount")
-                .eq("user_id", user.id)
-                .gte("date", getLocalDateString(startDate))
-                .lte("date", getLocalDateString(endDate))
-
-            if (b.type === "Category") {
-                query = query.eq("category", b.category)
-            } else if (b.type === "Expense") {
-                query = query.in("type", ["Expense", "Transfer"])
-            } else {
-                query = query.eq("type", b.type)
+            const filters = {
+                startDate: getLocalDateString(startDate),
+                endDate: getLocalDateString(endDate),
             }
 
-            const { data: trans } = await query
+            if (b.type === "Category") {
+                filters.category = b.category
+            } else if (b.type === "Expense") {
+                filters.type = "Expense"
+            } else {
+                filters.type = b.type
+            }
 
-            const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount), 0)
+            const trans = await api.transactions.getAll(filters)
+            const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
             const projectedTotal = currentTotal + amt
 
-            if (b.max_amount && projectedTotal > b.max_amount) {
-                setBudgetWarning(`🚨 Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${b.max_amount.toLocaleString()}.`)
+            const maxAmt = b.maxAmount ?? b.max_amount
+            const minAmt = b.minAmount ?? b.min_amount
+            const isBlock = b.isBlocking ?? b.is_blocking
+
+            if (maxAmt && projectedTotal > maxAmt) {
+                setBudgetWarning(`🚨 Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${maxAmt.toLocaleString()}.`)
                 foundWarning = true
-                if (b.is_blocking) {
+                if (isBlock) {
                     setIsBlocked(true)
                     return // Stop checking if blocked
                 }
                 break
-            } else if (b.min_amount && projectedTotal < b.min_amount) {
-                setBudgetWarning(`💡 Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${b.min_amount.toLocaleString()}. Keep going!`)
+            } else if (minAmt && projectedTotal < minAmt) {
+                setBudgetWarning(`💡 Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${minAmt.toLocaleString()}. Keep going!`)
                 foundWarning = true
                 break
-            } else if (b.max_amount && projectedTotal > b.max_amount * 0.8) {
-                setBudgetWarning(`⚠️ Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${b.max_amount.toLocaleString()}).`)
+            } else if (maxAmt && projectedTotal > maxAmt * 0.8) {
+                setBudgetWarning(`⚠️ Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${maxAmt.toLocaleString()}).`)
                 foundWarning = true
                 break
             }
@@ -187,35 +187,38 @@ export default function AddExpensesScreen({ navigation }) {
         const date = getLocalDateString(now)
         const time = now.toTimeString().split(' ')[0]
 
-        const { error } = await supabase.from("transactions").insert({
-            user_id: user.id,
-            amount: parseFloat(amount),
-            type: activeTab,
-            category: category,
-            sub_category: subCategory,
-            note: note,
-            date: date,
-            time: time,
-        })
+        try {
+            await api.transactions.create({
+                amount: parseFloat(amount),
+                type: activeTab,
+                category: category,
+                subCategory: subCategory,
+                note: note || undefined,
+                date: date,
+                time: time,
+            })
 
-        if (error) {
-            Alert.alert("Error", "Failed to save transaction: " + error.message)
-        } else {
             // Create notification if warning exists
             if (budgetWarning) {
-                await supabase.from("notifications").insert({
-                    user_id: user.id,
-                    title: "Budget Limit Warning",
-                    message: budgetWarning,
-                    type: "Budget Warning"
-                })
+                try {
+                    await api.notifications.create({
+                        title: "Budget Limit Warning",
+                        message: budgetWarning,
+                        type: "Budget Warning",
+                    })
+                } catch (notifErr) {
+                    console.warn("Failed to create notification:", notifErr)
+                }
             }
 
             Alert.alert("Success", "Transaction saved successfully!", [
                 { text: "OK", onPress: () => navigation.goBack() }
             ])
+        } catch (error) {
+            Alert.alert("Error", "Failed to save transaction: " + (error.message || "Unknown error"))
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (

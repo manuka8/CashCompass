@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 
 export default function NotificationScreen() {
     const { theme } = useContext(ThemeContext)
@@ -26,13 +26,7 @@ export default function NotificationScreen() {
 
     const fetchNotifications = async () => {
         try {
-            const { data, error } = await supabase
-                .from("notifications")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false })
-
-            if (error) throw error
+            const data = await api.notifications.getAll()
             setNotifications(data || [])
         } catch (error) {
             console.error("Error fetching notifications:", error)
@@ -52,81 +46,80 @@ export default function NotificationScreen() {
     }
 
     const markAsRead = async (id) => {
-        const { error } = await supabase
-            .from("notifications")
-            .update({ is_read: true })
-            .eq("id", id)
-
-        if (!error) {
+        try {
+            await api.notifications.markAsRead(id)
             setNotifications(prev =>
-                prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+                prev.map(n => n.id === id ? { ...n, isRead: true, is_read: true } : n)
             )
+        } catch (err) {
+            console.error("Failed to mark as read:", err)
         }
     }
 
     const deleteNotification = async (id) => {
-        const { error } = await supabase
-            .from("notifications")
-            .delete()
-            .eq("id", id)
-
-        if (!error) {
+        try {
+            await api.notifications.delete(id)
             setNotifications(prev => prev.filter(n => n.id !== id))
+        } catch (err) {
+            console.error("Failed to delete notification:", err)
         }
     }
 
     const clearAll = async () => {
-        const { error } = await supabase
-            .from("notifications")
-            .delete()
-            .eq("user_id", user.id)
-
-        if (!error) {
+        try {
+            await api.notifications.clearAll()
             setNotifications([])
+        } catch (err) {
+            console.error("Failed to clear notifications:", err)
         }
     }
 
-    const renderNotification = ({ item }) => (
-        <TouchableOpacity
-            style={[
-                styles.notificationCard,
-                { backgroundColor: theme.card },
-                !item.is_read && { borderLeftWidth: 4, borderLeftColor: theme.primary }
-            ]}
-            onPress={() => markAsRead(item.id)}
-        >
-            <View style={styles.cardHeader}>
-                <View style={[styles.typeBadge, {
-                    backgroundColor: item.type === "Budget Warning" ? "#FF4D4D20" :
-                        item.type === "Transaction" ? "#2ECC7120" : theme.border + "40"
-                }]}>
-                    <Text style={[styles.typeText, {
-                        color: item.type === "Budget Warning" ? "#FF4D4D" :
-                            item.type === "Transaction" ? "#2ECC71" : theme.subtext
+    const renderNotification = ({ item }) => {
+        const isRead = item.isRead ?? item.is_read
+        const createdDate = item.createdAt || item.created_at
+
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.notificationCard,
+                    { backgroundColor: theme.card },
+                    !isRead && { borderLeftWidth: 4, borderLeftColor: theme.primary }
+                ]}
+                onPress={() => markAsRead(item.id)}
+            >
+                <View style={styles.cardHeader}>
+                    <View style={[styles.typeBadge, {
+                        backgroundColor: item.type === "Budget Warning" ? "#FF4D4D20" :
+                            item.type === "Transaction" ? "#2ECC7120" : theme.border + "40"
                     }]}>
-                        {item.type}
+                        <Text style={[styles.typeText, {
+                            color: item.type === "Budget Warning" ? "#FF4D4D" :
+                                item.type === "Transaction" ? "#2ECC71" : theme.subtext
+                        }]}>
+                            {item.type}
+                        </Text>
+                    </View>
+                    <Text style={[styles.timeText, { color: theme.subtext }]}>
+                        {createdDate ? new Date(createdDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </Text>
                 </View>
-                <Text style={[styles.timeText, { color: theme.subtext }]}>
-                    {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+                <Text style={[styles.title, { color: theme.text, fontWeight: isRead ? "600" : "800" }]}>
+                    {item.title}
                 </Text>
-            </View>
+                <Text style={[styles.message, { color: theme.subtext }]}>
+                    {item.message}
+                </Text>
 
-            <Text style={[styles.title, { color: theme.text, fontWeight: item.is_read ? "600" : "800" }]}>
-                {item.title}
-            </Text>
-            <Text style={[styles.message, { color: theme.subtext }]}>
-                {item.message}
-            </Text>
-
-            <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => deleteNotification(item.id)}
-            >
-                <Text style={{ color: "#FF4D4D", fontSize: 12, fontWeight: "600" }}>Dismiss</Text>
+                <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => deleteNotification(item.id)}
+                >
+                    <Text style={{ color: "#FF4D4D", fontSize: 12, fontWeight: "600" }}>Dismiss</Text>
+                </TouchableOpacity>
             </TouchableOpacity>
-        </TouchableOpacity>
-    )
+        )
+    }
 
     const GroupHeader = ({ title }) => (
         <Text style={[styles.groupTitle, { color: theme.subtext }]}>{title.toUpperCase()}</Text>

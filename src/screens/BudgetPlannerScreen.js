@@ -17,7 +17,7 @@ import { useNavigation } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 import { TRANSACTION_CATEGORIES, getCurrencySymbol } from "../utils/constants"
 
 const { height } = Dimensions.get("window")
@@ -60,14 +60,14 @@ export default function BudgetPlannerScreen() {
 
     const fetchBudgets = async () => {
         setLoading(true)
-        const { data, error } = await supabase
-            .from("budgets")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-
-        if (!error) setBudgets(data || [])
-        setLoading(false)
+        try {
+            const data = await api.budgets.getAll()
+            if (data) setBudgets(data || [])
+        } catch (error) {
+            console.error("Error fetching budgets:", error)
+        } finally {
+            setLoading(false)
+        }
     }
 
     useEffect(() => {
@@ -85,37 +85,28 @@ export default function BudgetPlannerScreen() {
             return
         }
 
-        // Check for duplicates/conflicts
-        const isDuplicate = budgets.some(b =>
-            b.type === type &&
-            b.period === period &&
-            (type !== "Category" || b.category === category) &&
-            (period !== "Specified Date" || (b.start_date === startDate && b.end_date === endDate))
-        )
+        // Map "Total Balance" to "Expense" if selected
+        const mappedType = type === "Total Balance" ? "Expense" : type
+        // Map "Specified Date" to enum "SpecifiedDate" if needed
+        const mappedPeriod = period === "Specified Date" ? "SpecifiedDate" : period
 
-        if (isDuplicate) {
-            Alert.alert("Duplicate Budget", "A budget with this configuration already exists. Please delete the existing one first.")
-            return
-        }
+        try {
+            await api.budgets.create({
+                type: mappedType,
+                period: mappedPeriod,
+                category: type === "Category" ? category : undefined,
+                minAmount: minAmount ? parseFloat(minAmount) : undefined,
+                maxAmount: maxAmount ? parseFloat(maxAmount) : undefined,
+                startDate: period === "Specified Date" ? startDate : undefined,
+                endDate: period === "Specified Date" ? endDate : undefined,
+                isBlocking: isBlocking
+            })
 
-        const { error } = await supabase.from("budgets").insert({
-            user_id: user.id,
-            type,
-            period,
-            category: type === "Category" ? category : null,
-            min_amount: minAmount ? parseFloat(minAmount) : null,
-            max_amount: maxAmount ? parseFloat(maxAmount) : null,
-            start_date: period === "Specified Date" ? startDate : null,
-            end_date: period === "Specified Date" ? endDate : null,
-            is_blocking: isBlocking
-        })
-
-        if (error) {
-            Alert.alert("Error", error.message)
-        } else {
             setShowModal(false)
             fetchBudgets()
             resetForm()
+        } catch (error) {
+            Alert.alert("Error", error.message || "Failed to create budget")
         }
     }
 
@@ -151,11 +142,15 @@ export default function BudgetPlannerScreen() {
     }
 
     const deleteBudget = async (id) => {
-        const { error } = await supabase.from("budgets").delete().eq("id", id)
-        if (!error) fetchBudgets()
+        try {
+            await api.budgets.delete(id)
+            fetchBudgets()
+        } catch (error) {
+            Alert.alert("Error", error.message || "Failed to delete budget")
+        }
     }
 
-    const filteredBudgets = budgets.filter(b => b.period === activePeriod)
+    const filteredBudgets = budgets.filter(b => b.period === activePeriod || (activePeriod === "Specified Date" && b.period === "SpecifiedDate"))
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -195,47 +190,55 @@ export default function BudgetPlannerScreen() {
                         <Text style={[styles.emptySubText, { color: theme.subtext }]}>Plan your spending and save more effectively.</Text>
                     </View>
                 ) : (
-                    filteredBudgets.map(budget => (
-                        <View key={budget.id} style={[styles.budgetCard, { backgroundColor: theme.card }]}>
-                            <View style={styles.budgetHeader}>
-                                <View>
-                                    <Text style={[styles.budgetType, { color: theme.text }]}>{budget.type}</Text>
-                                    <Text style={[styles.budgetPeriod, { color: theme.subtext }]}>
-                                        {budget.period === "Specified Date" ? `${budget.start_date} to ${budget.end_date}` : budget.period}
-                                    </Text>
-                                </View>
-                                <TouchableOpacity onPress={() => deleteBudget(budget.id)}>
-                                    <Text style={{ color: "#FF4D4D" }}>🗑️</Text>
-                                </TouchableOpacity>
-                            </View>
+                    filteredBudgets.map(budget => {
+                        const minAmt = budget.minAmount ?? budget.min_amount
+                        const maxAmt = budget.maxAmount ?? budget.max_amount
+                        const isBlock = budget.isBlocking ?? budget.is_blocking
+                        const sDate = budget.startDate || budget.start_date
+                        const eDate = budget.endDate || budget.end_date
 
-                            {budget.category && (
-                                <View style={[styles.categoryBadge, { backgroundColor: theme.primary + "10" }]}>
-                                    <Text style={{ color: theme.primary, fontSize: 12 }}>{budget.category}</Text>
+                        return (
+                            <View key={budget.id} style={[styles.budgetCard, { backgroundColor: theme.card }]}>
+                                <View style={styles.budgetHeader}>
+                                    <View>
+                                        <Text style={[styles.budgetType, { color: theme.text }]}>{budget.type}</Text>
+                                        <Text style={[styles.budgetPeriod, { color: theme.subtext }]}>
+                                            {(budget.period === "Specified Date" || budget.period === "SpecifiedDate") ? `${sDate} to ${eDate}` : budget.period}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => deleteBudget(budget.id)}>
+                                        <Text style={{ color: "#FF4D4D" }}>🗑️</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            )}
 
-                            <View style={styles.budgetAmountRow}>
-                                {budget.min_amount && (
-                                    <View>
-                                        <Text style={[styles.amountLabel, { color: theme.subtext }]}>Min Goal</Text>
-                                        <Text style={[styles.budgetAmount, { color: "#2ECC71" }]}>{currencySymbol}{budget.min_amount.toLocaleString()}</Text>
+                                {budget.category && (
+                                    <View style={[styles.categoryBadge, { backgroundColor: theme.primary + "10" }]}>
+                                        <Text style={{ color: theme.primary, fontSize: 12 }}>{budget.category}</Text>
                                     </View>
                                 )}
-                                {budget.max_amount && (
-                                    <View>
-                                        <Text style={[styles.amountLabel, { color: theme.subtext }]}>Max Limit</Text>
-                                        <Text style={[styles.budgetAmount, { color: "#FF4D4D" }]}>{currencySymbol}{budget.max_amount.toLocaleString()}</Text>
-                                    </View>
-                                )}
-                                {budget.is_blocking && (
-                                    <View style={styles.blockingBadge}>
-                                        <Text style={styles.blockingText}>🔒 Blocking</Text>
-                                    </View>
-                                )}
+
+                                <View style={styles.budgetAmountRow}>
+                                    {minAmt != null && (
+                                        <View>
+                                            <Text style={[styles.amountLabel, { color: theme.subtext }]}>Min Goal</Text>
+                                            <Text style={[styles.budgetAmount, { color: "#2ECC71" }]}>{currencySymbol}{Number(minAmt).toLocaleString()}</Text>
+                                        </View>
+                                    )}
+                                    {maxAmt != null && (
+                                        <View>
+                                            <Text style={[styles.amountLabel, { color: theme.subtext }]}>Max Limit</Text>
+                                            <Text style={[styles.budgetAmount, { color: "#FF4D4D" }]}>{currencySymbol}{Number(maxAmt).toLocaleString()}</Text>
+                                        </View>
+                                    )}
+                                    {isBlock && (
+                                        <View style={styles.blockingBadge}>
+                                            <Text style={styles.blockingText}>🔒 Blocking</Text>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
-                        </View>
-                    ))
+                        )
+                    })
                 )}
             </ScrollView>
 

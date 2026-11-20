@@ -64,6 +64,7 @@ function MainDrawerNavigator() {
 }
 
 export default function AppNavigator() {
+  const { theme } = useContext(ThemeContext)
   const { user, loading } = useContext(AuthContext)
   const [showSplash, setShowSplash] = useState(true)
 
@@ -76,20 +77,17 @@ export default function AppNavigator() {
   }, [])
 
   if (loading || showSplash) {
-    return (
-      <ThemeProvider>
-        {showSplash ? <SplashScreen /> : (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" />
-          </View>
-        )}
-      </ThemeProvider>
+    return showSplash ? (
+      <SplashScreen />
+    ) : (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
     )
   }
 
   return (
-    <ThemeProvider>
-      <NavigationContainer>
+    <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
             <>
@@ -111,6 +109,5 @@ export default function AppNavigator() {
           )}
         </Stack.Navigator>
       </NavigationContainer>
-    </ThemeProvider>
   )
 }

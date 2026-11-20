@@ -16,7 +16,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { ThemeContext, THEMES } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 
 const { width } = Dimensions.get("window")
 
@@ -85,27 +85,15 @@ export default function HomeScreen() {
             }
 
             // Fetch transactions for the period
-            const { data: periodTrans, error: periodError } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("user_id", user.id)
-                .gte("date", getLocalDateString(startDate))
-                .order("date", { ascending: false })
+            const periodTrans = await api.transactions.getAll({
+                startDate: getLocalDateString(startDate),
+            })
 
-            if (periodError) throw periodError
             setTransactions(periodTrans || [])
             calculateTotals(periodTrans || [])
 
-            // Fetch last 5 recent transactions (regardless of period)
-            const { data: recent, error: recentError } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("date", { ascending: false })
-                .order("time", { ascending: false })
-                .limit(5)
-
-            if (recentError) throw recentError
+            // Fetch last 5 recent transactions
+            const recent = await api.transactions.getAll({ limit: 5 })
             setRecentTransactions(recent || [])
 
         } catch (error) {
@@ -113,7 +101,7 @@ export default function HomeScreen() {
         } finally {
             setLoading(false)
         }
-    }, [viewType, user.id])
+    }, [viewType, user?.id])
 
     // Use useFocusEffect to refresh when the screen is focused
     useFocusEffect(
@@ -146,72 +134,74 @@ export default function HomeScreen() {
 
     const fetchBudgetsAndSpending = useCallback(async () => {
         setLoading(true)
-        // Fetch budgets
-        const { data: budgetData } = await supabase
-            .from("budgets")
-            .select("*")
-            .eq("user_id", user.id)
+        try {
+            const budgetData = await api.budgets.getAll()
 
-        if (!budgetData) {
+            if (!budgetData || !Array.isArray(budgetData)) {
+                setLoading(false)
+                return
+            }
+
+            const stats = []
+            for (let b of budgetData) {
+                const now = new Date()
+                let startDate = new Date()
+                let endDate = new Date()
+
+                if (b.period === "Daily") {
+                    startDate.setHours(0, 0, 0, 0)
+                    endDate.setHours(23, 59, 59, 999)
+                } else if (b.period === "Monthly") {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+                } else if (b.period === "Yearly") {
+                    startDate = new Date(now.getFullYear(), 0, 1)
+                    endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+                } else if (b.period === "Specified Date" || b.period === "SpecifiedDate") {
+                    startDate = new Date(b.startDate || b.start_date)
+                    endDate = new Date(b.endDate || b.end_date)
+                    endDate.setHours(23, 59, 59, 999)
+                }
+
+                const filters = {
+                    startDate: getLocalDateString(startDate),
+                    endDate: getLocalDateString(endDate),
+                }
+
+                if (b.type === "Category") {
+                    filters.category = b.category
+                } else if (b.type === "Expense") {
+                    filters.type = "Expense"
+                } else {
+                    filters.type = b.type
+                }
+
+                const trans = await api.transactions.getAll(filters)
+                const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+
+                const maxAmt = b.maxAmount ?? b.max_amount
+                const minAmt = b.minAmount ?? b.min_amount
+
+                let maxPercent = maxAmt ? Math.min((currentTotal / maxAmt) * 100, 100) : 0
+                let minPercent = minAmt ? Math.min((currentTotal / minAmt) * 100, 100) : 0
+
+                stats.push({
+                    ...b,
+                    max_amount: maxAmt,
+                    min_amount: minAmt,
+                    currentTotal,
+                    maxPercent,
+                    minPercent
+                })
+            }
+            setBudgets(budgetData)
+            setBudgetStats(stats)
+        } catch (error) {
+            console.error("Error fetching budgets:", error)
+        } finally {
             setLoading(false)
-            return
         }
-
-        const stats = []
-        for (let b of budgetData) {
-            const now = new Date()
-            let startDate = new Date()
-            let endDate = new Date()
-
-            if (b.period === "Daily") {
-                startDate.setHours(0, 0, 0, 0)
-                endDate.setHours(23, 59, 59, 999)
-            } else if (b.period === "Monthly") {
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-            } else if (b.period === "Yearly") {
-                startDate = new Date(now.getFullYear(), 0, 1)
-                endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-            } else if (b.period === "Specified Date") {
-                startDate = new Date(b.start_date)
-                endDate = new Date(b.end_date)
-                endDate.setHours(23, 59, 59, 999)
-            }
-
-            let query = supabase
-                .from("transactions")
-                .select("amount")
-                .eq("user_id", user.id)
-                .gte("date", getLocalDateString(startDate))
-                .lte("date", getLocalDateString(endDate))
-
-            if (b.type === "Category") {
-                query = query.eq("category", b.category)
-            } else if (b.type === "Expense") {
-                query = query.in("type", ["Expense", "Transfer"])
-            } else {
-                query = query.eq("type", b.type)
-            }
-
-            const { data: trans } = await query
-
-            const currentTotal = (trans || []).reduce((sum, t) => sum + parseFloat(t.amount), 0)
-
-            // Calculate percentages for both if they exist
-            let maxPercent = b.max_amount ? Math.min((currentTotal / b.max_amount) * 100, 100) : 0
-            let minPercent = b.min_amount ? Math.min((currentTotal / b.min_amount) * 100, 100) : 0
-
-            stats.push({
-                ...b,
-                currentTotal,
-                maxPercent,
-                minPercent
-            })
-        }
-        setBudgets(budgetData)
-        setBudgetStats(stats)
-        setLoading(false)
-    }, [user.id])
+    }, [user?.id])
 
     useFocusEffect(
         useCallback(() => {

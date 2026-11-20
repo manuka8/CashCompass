@@ -16,17 +16,17 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
-import { supabase } from "../services/supabase"
+import { api } from "../services/api"
 
 export default function EditProfileScreen() {
     const { theme } = useContext(ThemeContext)
-    const { user } = useContext(AuthContext)
+    const { user, updateUser } = useContext(AuthContext)
     const navigation = useNavigation()
 
     const [loading, setLoading] = useState(false)
-    const [fullName, setFullName] = useState(user?.user_metadata?.full_name || "")
-    const [username, setUsername] = useState(user?.user_metadata?.username || "")
-    const [bio, setBio] = useState(user?.user_metadata?.bio || "")
+    const [fullName, setFullName] = useState(user?.user_metadata?.full_name || user?.fullName || "")
+    const [username, setUsername] = useState(user?.user_metadata?.username || user?.username || "")
+    const [bio, setBio] = useState(user?.user_metadata?.bio || user?.bio || "")
 
     const handleSave = async () => {
         if (!fullName.trim()) {
@@ -35,22 +35,23 @@ export default function EditProfileScreen() {
         }
 
         setLoading(true)
-        const { error } = await supabase.auth.updateUser({
-            data: {
-                full_name: fullName.trim(),
+        try {
+            const updated = await api.users.updateProfile({
+                fullName: fullName.trim(),
                 username: username.trim(),
                 bio: bio.trim()
+            })
+            if (updateUser) {
+                await updateUser(updated)
             }
-        })
-
-        if (error) {
-            Alert.alert("Update Failed", error.message)
-        } else {
             Alert.alert("Success", "Profile updated successfully!", [
                 { text: "OK", onPress: () => navigation.goBack() }
             ])
+        } catch (error) {
+            Alert.alert("Update Failed", error.message || "Failed to update profile")
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const handleResetPassword = async () => {
@@ -62,9 +63,12 @@ export default function EditProfileScreen() {
                 {
                     text: "Yes, Send Link",
                     onPress: async () => {
-                        const { error } = await supabase.auth.resetPasswordForEmail(user.email)
-                        if (error) Alert.alert("Error", error.message)
-                        else Alert.alert("Success", "Reset link sent to your email!")
+                        try {
+                            await api.auth.forgotPassword(user.email)
+                            Alert.alert("Success", "Reset instructions sent to your email!")
+                        } catch (error) {
+                            Alert.alert("Error", error.message || "Failed to send reset link")
+                        }
                     }
                 }
             ]
