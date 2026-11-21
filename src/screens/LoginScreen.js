@@ -26,6 +26,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { AuthContext } from "../context/AuthContext"
 import { ThemeContext } from "../context/ThemeContext"
+import { Mail, Lock, Eye, EyeOff } from "lucide-react-native"
 
 const { width, height } = Dimensions.get("window")
 
@@ -34,6 +35,7 @@ export default function LoginScreen({ navigation }) {
   const { login: loginUser } = useContext(AuthContext)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Reanimated shared values for interactive effects
@@ -78,12 +80,14 @@ export default function LoginScreen({ navigation }) {
   }
 
   const login = async () => {
-    if (!email || !password) {
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail || !password) {
       Alert.alert("Error", "Please fill in all fields")
       return
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(trimmedEmail)) {
       Alert.alert("Error", "Please enter a valid email")
       return
     }
@@ -143,6 +147,7 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: theme.text }]}>Email Address</Text>
                 <Animated.View style={[styles.inputWrapper, { backgroundColor: theme.card }, emailAnimatedStyle]}>
+                  <Mail size={20} color={theme.subtext} strokeWidth={2} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="nathan@example.com"
@@ -161,11 +166,12 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: theme.text }]}>Password</Text>
                 <Animated.View style={[styles.inputWrapper, { backgroundColor: theme.card }, passwordAnimatedStyle]}>
+                  <Lock size={20} color={theme.subtext} strokeWidth={2} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••"
                     placeholderTextColor={theme.subtext}
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
                     value={password}
@@ -173,6 +179,16 @@ export default function LoginScreen({ navigation }) {
                     onFocus={() => { passwordScale.value = withSpring(1.02) }}
                     onBlur={() => { passwordScale.value = withSpring(1) }}
                   />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={20} color={theme.subtext} strokeWidth={2} />
+                    ) : (
+                      <Eye size={20} color={theme.subtext} strokeWidth={2} />
+                    )}
+                  </TouchableOpacity>
                 </Animated.View>
                 <TouchableOpacity style={styles.forgotBtn}>
                   <Text style={[styles.forgotText, { color: theme.primary }]}>Forgot Password?</Text>
@@ -301,14 +317,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 22,
     borderWidth: 1.5,
+    paddingHorizontal: 18,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
+    flex: 1,
     height: 62,
-    paddingHorizontal: 22,
     fontSize: 16,
     fontWeight: "500",
+  },
+  eyeBtn: {
+    padding: 6,
+    marginLeft: 8,
   },
   forgotBtn: {
     alignSelf: "flex-end",

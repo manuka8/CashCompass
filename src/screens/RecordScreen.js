@@ -15,10 +15,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
+import { ArrowLeft, SlidersHorizontal, ChevronDown } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES, getCurrencySymbol } from "../utils/constants"
 import { api } from "../services/api"
 import { AuthContext } from "../context/AuthContext"
+import CategoryIcon from "../components/CategoryIcon"
 
 const { height } = Dimensions.get("window")
 
@@ -106,7 +108,7 @@ export default function RecordScreen() {
         >
             <View style={styles.recordLeft}>
                 <View style={[styles.iconBox, { backgroundColor: theme.primary + "20" }]}>
-                    <Text style={styles.recordIcon}>📝</Text>
+                    <CategoryIcon category={item.category} size={20} color={theme.primary} strokeWidth={2} />
                 </View>
                 <View>
                     <Text style={[styles.recordCategory, { color: theme.text }]}>{item.category}</Text>
@@ -132,11 +134,11 @@ export default function RecordScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
+                    <ArrowLeft size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Transactions</Text>
                 <TouchableOpacity onPress={() => setShowFilters(true)} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 20 }}>⚙️</Text>
+                    <SlidersHorizontal size={22} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -205,12 +207,15 @@ export default function RecordScreen() {
                                     style={[styles.dropdown, { borderColor: theme.border }]}
                                     placeholderStyle={{ color: theme.subtext }}
                                     selectedTextStyle={{ color: theme.text }}
+                                    containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
+                                    itemTextStyle={{ color: theme.text }}
                                     data={TRANSACTION_TYPES}
                                     labelField="label"
                                     valueField="value"
                                     placeholder="All Types"
                                     value={filterType}
                                     onChange={item => setFilterType(item.value)}
+                                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                                 />
                             </View>
 
@@ -220,6 +225,7 @@ export default function RecordScreen() {
                                     style={[styles.dropdown, { borderColor: theme.border }]}
                                     placeholderStyle={{ color: theme.subtext }}
                                     selectedTextStyle={{ color: theme.text }}
+                                    containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
                                     data={TRANSACTION_CATEGORIES}
                                     search
                                     labelField="label"
@@ -230,6 +236,18 @@ export default function RecordScreen() {
                                         setFilterCategory(item.value)
                                         setAvailableSubCategories(item.subCategories || [])
                                     }}
+                                    renderLeftIcon={() => filterCategory ? (
+                                        <View style={styles.dropdownLeftIcon}>
+                                            <CategoryIcon category={filterCategory} size={18} color={theme.primary} />
+                                        </View>
+                                    ) : null}
+                                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
+                                    renderItem={(item) => (
+                                        <View style={styles.dropdownItem}>
+                                            <CategoryIcon category={item.value} size={18} color={theme.primary} />
+                                            <Text style={[styles.dropdownItemText, { color: theme.text }]}>{item.label}</Text>
+                                        </View>
+                                    )}
                                 />
                             </View>
 
@@ -239,6 +257,8 @@ export default function RecordScreen() {
                                     style={[styles.dropdown, { borderColor: theme.border }]}
                                     placeholderStyle={{ color: theme.subtext }}
                                     selectedTextStyle={{ color: theme.text }}
+                                    containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
+                                    itemTextStyle={{ color: theme.text }}
                                     data={availableSubCategories}
                                     search
                                     labelField="label"
@@ -247,6 +267,7 @@ export default function RecordScreen() {
                                     value={filterSubCategory}
                                     onChange={item => setFilterSubCategory(item.value)}
                                     disable={!filterCategory}
+                                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                                 />
                             </View>
 
@@ -368,6 +389,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 12,
         paddingHorizontal: 12,
+    },
+    dropdownLeftIcon: {
+        marginRight: 8,
+    },
+    dropdownItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        gap: 10,
+    },
+    dropdownItemText: {
+        fontSize: 15,
+        fontWeight: "500",
     },
     rangeRow: { flexDirection: "row", alignItems: "center" },
     rangeInput: {

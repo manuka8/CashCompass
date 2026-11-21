@@ -234,7 +234,7 @@ export const getCurrencySymbol = (code) => {
 
 export const TRANSACTION_CATEGORIES = [
     {
-        label: 'Housing 🏠',
+        label: 'Housing',
         value: 'Housing',
         subCategories: [
             { label: 'Rent / Mortgage', value: 'Rent / Mortgage' },
@@ -247,7 +247,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Food & Dining 🍔',
+        label: 'Food & Dining',
         value: 'Food & Dining',
         subCategories: [
             { label: 'Groceries', value: 'Groceries' },
@@ -258,7 +258,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Transportation 🚗',
+        label: 'Transportation',
         value: 'Transportation',
         subCategories: [
             { label: 'Fuel / Petrol', value: 'Fuel / Petrol' },
@@ -270,7 +270,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Bills & Utilities 💡',
+        label: 'Bills & Utilities',
         value: 'Bills & Utilities',
         subCategories: [
             { label: 'Mobile Phone Bill', value: 'Mobile Phone Bill' },
@@ -281,7 +281,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Shopping 🛍️',
+        label: 'Shopping',
         value: 'Shopping',
         subCategories: [
             { label: 'Clothes', value: 'Clothes' },
@@ -292,7 +292,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Health & Medical 🏥',
+        label: 'Health & Medical',
         value: 'Health & Medical',
         subCategories: [
             { label: 'Doctor Visits', value: 'Doctor Visits' },
@@ -303,7 +303,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Education 📚',
+        label: 'Education',
         value: 'Education',
         subCategories: [
             { label: 'Tuition Fees', value: 'Tuition Fees' },
@@ -314,7 +314,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Entertainment 🎬',
+        label: 'Entertainment',
         value: 'Entertainment',
         subCategories: [
             { label: 'Movies', value: 'Movies' },
@@ -325,7 +325,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Travel ✈️',
+        label: 'Travel',
         value: 'Travel',
         subCategories: [
             { label: 'Flights', value: 'Flights' },
@@ -336,7 +336,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Personal Care 💇',
+        label: 'Personal Care',
         value: 'Personal Care',
         subCategories: [
             { label: 'Haircut', value: 'Haircut' },
@@ -346,7 +346,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Financial 💳',
+        label: 'Financial',
         value: 'Financial',
         subCategories: [
             { label: 'Loan Payments', value: 'Loan Payments' },
@@ -356,7 +356,7 @@ export const TRANSACTION_CATEGORIES = [
         ]
     },
     {
-        label: 'Others 📦',
+        label: 'Others',
         value: 'Others',
         subCategories: [
             { label: 'Donations / Charity', value: 'Donations / Charity' },

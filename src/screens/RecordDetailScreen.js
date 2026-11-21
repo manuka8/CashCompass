@@ -9,9 +9,11 @@ import {
     Dimensions
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { ArrowLeft, Pencil, Tag, StickyNote, Calendar, Trash2 } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
+import CategoryIcon from "../components/CategoryIcon"
 
 const { width } = Dimensions.get("window")
 
@@ -29,7 +31,7 @@ export default function RecordDetailScreen({ route, navigation }) {
         <View style={[styles.detailItem, { borderBottomColor: theme.border, borderBottomWidth: isLast ? 0 : 1 }]}>
             <View style={styles.detailLeft}>
                 <View style={[styles.detailIconBox, { backgroundColor: theme.primary + "10" }]}>
-                    <Text style={styles.detailIcon}>{icon}</Text>
+                    {icon}
                 </View>
                 <Text style={[styles.detailLabel, { color: theme.subtext }]}>{label}</Text>
             </View>
@@ -44,11 +46,11 @@ export default function RecordDetailScreen({ route, navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
+                    <ArrowLeft size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Record Details</Text>
                 <TouchableOpacity style={styles.iconBtn}>
-                    <Text style={{ fontSize: 20 }}>✏️</Text>
+                    <Pencil size={20} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -73,15 +75,33 @@ export default function RecordDetailScreen({ route, navigation }) {
 
                 {/* Details List */}
                 <View style={[styles.detailsSection, { backgroundColor: theme.card }]}>
-                    <DetailItem label="Category" value={record.category} icon="📁" />
-                    <DetailItem label="Sub-category" value={record.sub_category} icon="📄" />
-                    <DetailItem label="Note" value={record.note || "No notes added"} icon="📝" />
-                    <DetailItem label="Created At" value={new Date(record.created_at || Date.now()).toLocaleDateString()} icon="📅" isLast />
+                    <DetailItem
+                        label="Category"
+                        value={record.category}
+                        icon={<CategoryIcon category={record.category} size={18} color={theme.primary} />}
+                    />
+                    <DetailItem
+                        label="Sub-category"
+                        value={record.sub_category}
+                        icon={<Tag size={18} color={theme.primary} strokeWidth={2} />}
+                    />
+                    <DetailItem
+                        label="Note"
+                        value={record.note || "No notes added"}
+                        icon={<StickyNote size={18} color={theme.primary} strokeWidth={2} />}
+                    />
+                    <DetailItem
+                        label="Created At"
+                        value={new Date(record.created_at || Date.now()).toLocaleDateString()}
+                        icon={<Calendar size={18} color={theme.primary} strokeWidth={2} />}
+                        isLast
+                    />
                 </View>
 
                 {/* Action Buttons */}
                 <View style={styles.actions}>
                     <TouchableOpacity style={[styles.deleteBtn, { borderColor: "#FF4D4D" }]}>
+                        <Trash2 size={18} color="#FF4D4D" strokeWidth={2} />
                         <Text style={styles.deleteText}>Delete Record</Text>
                     </TouchableOpacity>
                 </View>
@@ -156,6 +176,8 @@ const styles = StyleSheet.create({
         height: 56,
         borderRadius: 16,
         borderWidth: 1.5,
+        flexDirection: "row",
+        gap: 8,
         justifyContent: "center",
         alignItems: "center",
     },

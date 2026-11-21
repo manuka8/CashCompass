@@ -14,6 +14,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
+import { X, Camera, KeyRound } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { api } from "../services/api"
@@ -82,7 +83,7 @@ export default function EditProfileScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>✕</Text>
+                    <X size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Edit Profile</Text>
                 <TouchableOpacity onPress={handleSave} disabled={loading} style={styles.saveHeaderBtn}>
@@ -103,6 +104,7 @@ export default function EditProfileScreen() {
                             </Text>
                         </View>
                         <TouchableOpacity style={styles.changePhotoBtn}>
+                            <Camera size={16} color={theme.primary} strokeWidth={2} />
                             <Text style={[styles.changePhotoText, { color: theme.primary }]}>Change Profile Photo</Text>
                         </TouchableOpacity>
                     </View>
@@ -148,6 +150,7 @@ export default function EditProfileScreen() {
                     <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
                     <TouchableOpacity style={styles.dangerAction} onPress={handleResetPassword}>
+                        <KeyRound size={18} color="#EF4444" strokeWidth={2} />
                         <Text style={styles.dangerText}>Reset Password</Text>
                     </TouchableOpacity>
 
@@ -207,6 +210,11 @@ const styles = StyleSheet.create({
         fontSize: 40,
         fontWeight: "bold",
     },
+    changePhotoBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
     changePhotoText: {
         fontSize: 14,
         fontWeight: "600",
@@ -240,8 +248,11 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
     dangerAction: {
+        flexDirection: "row",
         paddingVertical: 15,
         alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
     },
     dangerText: {
         color: "#EF4444",

@@ -14,10 +14,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from "react-native-element-dropdown"
 import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated"
+import { X, AlertTriangle, Ban, Lightbulb, ChevronDown } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES, getCurrencySymbol } from "../utils/constants"
 import { api } from "../services/api"
 import { AuthContext } from "../context/AuthContext"
+import CategoryIcon from "../components/CategoryIcon"
 
 const { width } = Dimensions.get("window")
 
@@ -131,7 +133,10 @@ export default function AddExpensesScreen({ navigation }) {
             const isBlock = b.isBlocking ?? b.is_blocking
 
             if (maxAmt && projectedTotal > maxAmt) {
-                setBudgetWarning(`🚨 Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${maxAmt.toLocaleString()}.`)
+                setBudgetWarning({
+                    type: "exceeded",
+                    message: `Limit Exceeded: This will bring your ${b.period} ${b.type === 'Category' ? b.category : b.type} total to ${currencySymbol}${projectedTotal.toLocaleString()}, which is above your limit of ${currencySymbol}${maxAmt.toLocaleString()}.`,
+                })
                 foundWarning = true
                 if (isBlock) {
                     setIsBlocked(true)
@@ -139,11 +144,17 @@ export default function AddExpensesScreen({ navigation }) {
                 }
                 break
             } else if (minAmt && projectedTotal < minAmt) {
-                setBudgetWarning(`💡 Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${minAmt.toLocaleString()}. Keep going!`)
+                setBudgetWarning({
+                    type: "goal",
+                    message: `Goal Check: You'll be at ${currencySymbol}${projectedTotal.toLocaleString()}, which is still below your ${b.period} target of ${currencySymbol}${minAmt.toLocaleString()}. Keep going!`,
+                })
                 foundWarning = true
                 break
             } else if (maxAmt && projectedTotal > maxAmt * 0.8) {
-                setBudgetWarning(`⚠️ Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${maxAmt.toLocaleString()}).`)
+                setBudgetWarning({
+                    type: "warning",
+                    message: `Warning: You've used over 80% of your ${b.period} ${b.type === 'Category' ? b.category : b.type} limit (${currencySymbol}${maxAmt.toLocaleString()}).`,
+                })
                 foundWarning = true
                 break
             }
@@ -203,7 +214,7 @@ export default function AddExpensesScreen({ navigation }) {
                 try {
                     await api.notifications.create({
                         title: "Budget Limit Warning",
-                        message: budgetWarning,
+                        message: budgetWarning.message,
                         type: "Budget Warning",
                     })
                 } catch (notifErr) {
@@ -226,7 +237,7 @@ export default function AddExpensesScreen({ navigation }) {
             <StatusBar barStyle={theme.mode === "dark" ? "light-content" : "dark-content"} />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Text style={[styles.backText, { color: theme.text }]}>✕</Text>
+                    <X size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Add Transaction</Text>
                 <View style={{ width: 40 }} />
@@ -268,9 +279,18 @@ export default function AddExpensesScreen({ navigation }) {
                     </View>
                     {budgetWarning && (
                         <View style={[styles.warningContainer, { backgroundColor: isBlocked ? "#FF4D4D20" : "#F1C40F20" }]}>
-                            <Text style={[styles.warningText, { color: isBlocked ? "#FF4D4D" : "#D4AC0D" }]}>
-                                {isBlocked ? "🚫 " : "⚠️ "}{budgetWarning}
-                            </Text>
+                            <View style={styles.warningRow}>
+                                {isBlocked ? (
+                                    <Ban size={18} color="#FF4D4D" strokeWidth={2.2} style={styles.warningIcon} />
+                                ) : budgetWarning.type === "goal" ? (
+                                    <Lightbulb size={18} color="#D4AC0D" strokeWidth={2.2} style={styles.warningIcon} />
+                                ) : (
+                                    <AlertTriangle size={18} color="#D4AC0D" strokeWidth={2.2} style={styles.warningIcon} />
+                                )}
+                                <Text style={[styles.warningText, { color: isBlocked ? "#FF4D4D" : "#D4AC0D" }]}>
+                                    {budgetWarning.message}
+                                </Text>
+                            </View>
                             {isBlocked && <Text style={styles.blockNote}>Transaction is blocked by your budget planner.</Text>}
                         </View>
                     )}
@@ -284,6 +304,7 @@ export default function AddExpensesScreen({ navigation }) {
                             placeholderStyle={[styles.placeholderStyle, { color: theme.subtext }]}
                             selectedTextStyle={[styles.selectedTextStyle, { color: theme.text }]}
                             inputSearchStyle={styles.inputSearchStyle}
+                            containerStyle={{ borderRadius: 16, backgroundColor: theme.card }}
                             data={TRANSACTION_CATEGORIES}
                             search
                             maxHeight={300}
@@ -293,6 +314,20 @@ export default function AddExpensesScreen({ navigation }) {
                             searchPlaceholder="Search..."
                             value={category}
                             onChange={handleCategoryChange}
+                            renderLeftIcon={() => category ? (
+                                <View style={styles.dropdownLeftIcon}>
+                                    <CategoryIcon category={category} size={18} color={theme.primary} />
+                                </View>
+                            ) : null}
+                            renderRightIcon={() => (
+                                <ChevronDown size={18} color={theme.subtext} />
+                            )}
+                            renderItem={(item) => (
+                                <View style={styles.dropdownItem}>
+                                    <CategoryIcon category={item.value} size={18} color={theme.primary} />
+                                    <Text style={[styles.dropdownItemText, { color: theme.text }]}>{item.label}</Text>
+                                </View>
+                            )}
                         />
                     </View>
 
@@ -303,6 +338,8 @@ export default function AddExpensesScreen({ navigation }) {
                             placeholderStyle={[styles.placeholderStyle, { color: theme.subtext }]}
                             selectedTextStyle={[styles.selectedTextStyle, { color: theme.text }]}
                             inputSearchStyle={styles.inputSearchStyle}
+                            containerStyle={{ borderRadius: 16, backgroundColor: theme.card }}
+                            itemTextStyle={{ color: theme.text }}
                             data={availableSubCategories}
                             search
                             maxHeight={300}
@@ -313,6 +350,9 @@ export default function AddExpensesScreen({ navigation }) {
                             value={subCategory}
                             onChange={item => setSubCategory(item.value)}
                             disable={!category}
+                            renderRightIcon={() => (
+                                <ChevronDown size={18} color={theme.subtext} />
+                            )}
                         />
                     </View>
 
@@ -483,10 +523,32 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 12,
     },
+    warningRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 8,
+    },
+    warningIcon: {
+        marginTop: 1,
+    },
     warningText: {
+        flex: 1,
         fontSize: 13,
         fontWeight: "700",
-        textAlign: "center",
+    },
+    dropdownLeftIcon: {
+        marginRight: 10,
+    },
+    dropdownItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    dropdownItemText: {
+        fontSize: 15,
+        fontWeight: "500",
     },
     blockNote: {
         fontSize: 11,

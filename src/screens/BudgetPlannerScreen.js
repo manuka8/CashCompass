@@ -15,10 +15,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
+import { ArrowLeft, Plus, BarChart3, Trash2, Lock, Check, ChevronDown } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { api } from "../services/api"
 import { TRANSACTION_CATEGORIES, getCurrencySymbol } from "../utils/constants"
+import CategoryIcon from "../components/CategoryIcon"
 
 const { height } = Dimensions.get("window")
 
@@ -159,11 +161,11 @@ export default function BudgetPlannerScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
+                    <ArrowLeft size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Budget Planner</Text>
                 <TouchableOpacity onPress={() => setShowModal(true)} style={[styles.addBtn, { backgroundColor: theme.primary }]}>
-                    <Text style={styles.addBtnText}>+</Text>
+                    <Plus size={22} color="#FFF" strokeWidth={2.5} />
                 </TouchableOpacity>
             </View>
 
@@ -185,7 +187,9 @@ export default function BudgetPlannerScreen() {
                     <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
                 ) : filteredBudgets.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={{ fontSize: 50, marginBottom: 20 }}>📊</Text>
+                        <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + "15" }]}>
+                            <BarChart3 size={44} color={theme.primary} strokeWidth={1.8} />
+                        </View>
                         <Text style={[styles.emptyText, { color: theme.subtext }]}>No budgets for {activePeriod}</Text>
                         <Text style={[styles.emptySubText, { color: theme.subtext }]}>Plan your spending and save more effectively.</Text>
                     </View>
@@ -206,14 +210,15 @@ export default function BudgetPlannerScreen() {
                                             {(budget.period === "Specified Date" || budget.period === "SpecifiedDate") ? `${sDate} to ${eDate}` : budget.period}
                                         </Text>
                                     </View>
-                                    <TouchableOpacity onPress={() => deleteBudget(budget.id)}>
-                                        <Text style={{ color: "#FF4D4D" }}>🗑️</Text>
+                                    <TouchableOpacity onPress={() => deleteBudget(budget.id)} style={styles.iconBtn}>
+                                        <Trash2 size={20} color="#FF4D4D" strokeWidth={2} />
                                     </TouchableOpacity>
                                 </View>
 
                                 {budget.category && (
                                     <View style={[styles.categoryBadge, { backgroundColor: theme.primary + "10" }]}>
-                                        <Text style={{ color: theme.primary, fontSize: 12 }}>{budget.category}</Text>
+                                        <CategoryIcon category={budget.category} size={14} color={theme.primary} strokeWidth={2} />
+                                        <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>{budget.category}</Text>
                                     </View>
                                 )}
 
@@ -232,7 +237,8 @@ export default function BudgetPlannerScreen() {
                                     )}
                                     {isBlock && (
                                         <View style={styles.blockingBadge}>
-                                            <Text style={styles.blockingText}>🔒 Blocking</Text>
+                                            <Lock size={12} color="#FF4D4D" strokeWidth={2.2} />
+                                            <Text style={styles.blockingText}>Blocking</Text>
                                         </View>
                                     )}
                                 </View>
@@ -265,6 +271,9 @@ export default function BudgetPlannerScreen() {
                                     onChange={item => setType(item.value)}
                                     placeholderStyle={{ color: theme.subtext }}
                                     selectedTextStyle={{ color: theme.text }}
+                                    containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
+                                    itemTextStyle={{ color: theme.text }}
+                                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                                 />
                             </View>
 
@@ -280,6 +289,19 @@ export default function BudgetPlannerScreen() {
                                         onChange={item => setCategory(item.value)}
                                         placeholderStyle={{ color: theme.subtext }}
                                         selectedTextStyle={{ color: theme.text }}
+                                        containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
+                                        renderLeftIcon={() => category ? (
+                                            <View style={styles.dropdownLeftIcon}>
+                                                <CategoryIcon category={category} size={18} color={theme.primary} />
+                                            </View>
+                                        ) : null}
+                                        renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
+                                        renderItem={(item) => (
+                                            <View style={styles.dropdownItem}>
+                                                <CategoryIcon category={item.value} size={18} color={theme.primary} />
+                                                <Text style={[styles.dropdownItemText, { color: theme.text }]}>{item.label}</Text>
+                                            </View>
+                                        )}
                                     />
                                 </View>
                             )}
@@ -295,6 +317,9 @@ export default function BudgetPlannerScreen() {
                                     onChange={item => setPeriod(item.value)}
                                     placeholderStyle={{ color: theme.subtext }}
                                     selectedTextStyle={{ color: theme.text }}
+                                    containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
+                                    itemTextStyle={{ color: theme.text }}
+                                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                                 />
                             </View>
 
@@ -368,7 +393,7 @@ export default function BudgetPlannerScreen() {
                                     onPress={() => setIsBlocking(!isBlocking)}
                                 >
                                     <View style={[styles.checkbox, isBlocking && { backgroundColor: theme.primary, borderColor: theme.primary }]}>
-                                        {isBlocking && <Text style={{ color: "#FFF", fontSize: 10 }}>✓</Text>}
+                                        {isBlocking && <Check size={14} color="#FFF" strokeWidth={3} />}
                                     </View>
                                     <Text style={[styles.blockingLabel, { color: theme.text }]}>Block transaction if limit exceeded</Text>
                                 </TouchableOpacity>
@@ -404,6 +429,14 @@ const styles = StyleSheet.create({
     addBtnText: { color: "#FFF", fontSize: 24, fontWeight: "bold" },
     scrollContent: { padding: 20 },
     emptyState: { alignItems: "center", justifyContent: "center", marginTop: 100 },
+    emptyIconCircle: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 20,
+    },
     emptyText: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
     emptySubText: { fontSize: 14, textAlign: "center", opacity: 0.7, paddingHorizontal: 40 },
     budgetCard: {
@@ -419,7 +452,7 @@ const styles = StyleSheet.create({
     budgetHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
     budgetType: { fontSize: 16, fontWeight: "bold" },
     budgetPeriod: { fontSize: 12, marginTop: 2 },
-    categoryBadge: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginBottom: 12 },
+    categoryBadge: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, marginBottom: 12 },
     budgetAmountRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 10 },
     amountLabel: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
     budgetAmount: { fontSize: 22, fontWeight: "800" },
@@ -428,8 +461,11 @@ const styles = StyleSheet.create({
     quickActionRow: { flexDirection: "row", gap: 8, marginTop: 4 },
     quickBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
     quickBtnText: { fontSize: 11, fontWeight: "700" },
-    blockingBadge: { backgroundColor: "#FF4D4D20", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    blockingBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#FF4D4D20", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
     blockingText: { color: "#FF4D4D", fontSize: 10, fontWeight: "bold" },
+    dropdownLeftIcon: { marginRight: 8 },
+    dropdownItem: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 14, gap: 10 },
+    dropdownItemText: { fontSize: 15, fontWeight: "500" },
     modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     modalContent: { height: height * 0.85, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24 },
     modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },

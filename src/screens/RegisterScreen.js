@@ -24,6 +24,7 @@ import Animated, {
 } from "react-native-reanimated"
 import { AuthContext } from "../context/AuthContext"
 import { Dropdown } from 'react-native-element-dropdown';
+import { ArrowLeft, ChevronDown } from "lucide-react-native"
 import { COUNTRIES, CURRENCIES } from "../utils/constants"
 import { ThemeContext } from "../context/ThemeContext"
 
@@ -54,12 +55,14 @@ export default function RegisterScreen({ navigation }) {
   }
 
   const register = async () => {
-    if (!email || !password || !confirmPassword || !country || !currency) {
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail || !password || !confirmPassword || !country || !currency) {
       Alert.alert("Error", "Please fill in all fields")
       return
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(trimmedEmail)) {
       Alert.alert("Error", "Please enter a valid email")
       return
     }
@@ -116,7 +119,7 @@ export default function RegisterScreen({ navigation }) {
                   style={[styles.backBtn, { backgroundColor: "rgba(255, 255, 255, 0.25)", borderColor: "rgba(255, 255, 255, 0.4)" }]}
                   onPress={() => navigation.goBack()}
                 >
-                  <Text style={styles.backBtnText}>←</Text>
+                  <ArrowLeft size={24} color="#FFFFFF" strokeWidth={2.2} />
                 </TouchableOpacity>
               </Animated.View>
 
@@ -146,6 +149,7 @@ export default function RegisterScreen({ navigation }) {
                     placeholder="nathan@example.com"
                     placeholderTextColor={theme.subtext}
                     autoCapitalize="none"
+                    autoCorrect={false}
                     keyboardType="email-address"
                     value={email}
                     onChangeText={setEmail}
@@ -202,6 +206,7 @@ export default function RegisterScreen({ navigation }) {
                       setCountry(item.label);
                       setIsCountryFocus(false);
                     }}
+                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                   />
                 </Animated.View>
 
@@ -221,7 +226,7 @@ export default function RegisterScreen({ navigation }) {
                     search
                     maxHeight={300}
                     labelField="label"
-                    valueField="label"
+                    valueField="value"
                     placeholder={!isCurrencyFocus ? 'Select Currency' : '...'}
                     searchPlaceholder="Search..."
                     value={currency}
@@ -231,6 +236,7 @@ export default function RegisterScreen({ navigation }) {
                       setCurrency(item.value);
                       setIsCurrencyFocus(false);
                     }}
+                    renderRightIcon={() => <ChevronDown size={18} color={theme.subtext} />}
                   />
                 </Animated.View>
 

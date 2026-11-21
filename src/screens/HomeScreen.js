@@ -13,10 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { G, Circle } from "react-native-svg"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
+import { Menu, Bell, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Plus } from "lucide-react-native"
 import { ThemeContext, THEMES } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
 import { api } from "../services/api"
+import CategoryIcon from "../components/CategoryIcon"
 
 const { width } = Dimensions.get("window")
 
@@ -217,7 +219,7 @@ export default function HomeScreen() {
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <View style={styles.headerLeft}>
                     <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.iconBtn}>
-                        <Text style={{ fontSize: 24, color: theme.text }}>☰</Text>
+                        <Menu size={24} color={theme.text} strokeWidth={2} />
                     </TouchableOpacity>
                     <Image source={theme.logo} style={styles.logo} resizeMode="contain" />
                 </View>
@@ -226,7 +228,7 @@ export default function HomeScreen() {
                         style={styles.notificationBtn}
                         onPress={() => navigation.navigate("Notifications")}
                     >
-                        <Text style={{ fontSize: 20 }}>🔔</Text>
+                        <Bell size={22} color={theme.text} strokeWidth={2} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.profileContainer}
@@ -255,7 +257,7 @@ export default function HomeScreen() {
                     <View style={styles.statsGrid}>
                         <View style={[styles.statsCardShort, { backgroundColor: theme.card }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(46, 204, 113, 0.1)" }]}>
-                                <Text style={{ color: "#2ECC71" }}>↓</Text>
+                                <ArrowDownLeft size={20} color="#2ECC71" strokeWidth={2.2} />
                             </View>
                             <View>
                                 <Text style={[styles.statsLabel, { color: theme.subtext }]}>Income</Text>
@@ -264,7 +266,7 @@ export default function HomeScreen() {
                         </View>
                         <View style={[styles.statsCardShort, { backgroundColor: theme.card }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(231, 76, 60, 0.1)" }]}>
-                                <Text style={{ color: "#E74C6C" }}>↑</Text>
+                                <ArrowUpRight size={20} color="#E74C6C" strokeWidth={2.2} />
                             </View>
                             <View>
                                 <Text style={[styles.statsLabel, { color: theme.subtext }]}>Expense</Text>
@@ -273,7 +275,7 @@ export default function HomeScreen() {
                         </View>
                         <View style={[styles.statsCardShort, { backgroundColor: theme.card, marginTop: 12, width: "100%" }]}>
                             <View style={[styles.statsIcon, { backgroundColor: "rgba(52, 152, 219, 0.1)" }]}>
-                                <Text style={{ color: "#3498DB" }}>⇄</Text>
+                                <ArrowLeftRight size={20} color="#3498DB" strokeWidth={2.2} />
                             </View>
                             <View>
                                 <Text style={[styles.statsLabel, { color: theme.subtext }]}>Transfer</Text>
@@ -470,7 +472,7 @@ export default function HomeScreen() {
                             >
                                 <View style={styles.transactionLeft}>
                                     <View style={[styles.iconBox, { backgroundColor: theme.primary + "15" }]}>
-                                        <Text style={{ fontSize: 18 }}>📝</Text>
+                                        <CategoryIcon category={item.category} size={20} color={theme.primary} strokeWidth={2} />
                                     </View>
                                     <View>
                                         <Text style={[styles.transactionCategory, { color: theme.text }]}>{item.category}</Text>
@@ -496,7 +498,7 @@ export default function HomeScreen() {
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate("AddExpense")}
             >
-                <Text style={styles.fabIcon}>+</Text>
+                <Plus size={28} color="#FFF" strokeWidth={2.5} />
             </TouchableOpacity>
         </SafeAreaView>
     )

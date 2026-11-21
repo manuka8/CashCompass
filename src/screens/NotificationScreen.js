@@ -11,6 +11,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
+import { ArrowLeft, BellOff, X } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { api } from "../services/api"
@@ -115,6 +116,7 @@ export default function NotificationScreen() {
                     style={styles.deleteBtn}
                     onPress={() => deleteNotification(item.id)}
                 >
+                    <X size={14} color="#FF4D4D" strokeWidth={2.2} />
                     <Text style={{ color: "#FF4D4D", fontSize: 12, fontWeight: "600" }}>Dismiss</Text>
                 </TouchableOpacity>
             </TouchableOpacity>
@@ -132,7 +134,7 @@ export default function NotificationScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
+                    <ArrowLeft size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Notifications</Text>
                 {notifications.length > 0 ? (
@@ -157,7 +159,9 @@ export default function NotificationScreen() {
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Text style={{ fontSize: 40, marginBottom: 20 }}>🔔</Text>
+                            <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + "15" }]}>
+                                <BellOff size={40} color={theme.primary} strokeWidth={1.8} />
+                            </View>
                             <Text style={[styles.emptyText, { color: theme.subtext }]}>No notifications yet</Text>
                             <Text style={[styles.emptySubText, { color: theme.subtext }]}>We'll alert you here for budget limits and system updates.</Text>
                         </View>
@@ -205,9 +209,17 @@ const styles = StyleSheet.create({
     timeText: { fontSize: 11, fontWeight: "500" },
     title: { fontSize: 16, marginBottom: 4 },
     message: { fontSize: 14, lineHeight: 20 },
-    deleteBtn: { marginTop: 12, alignSelf: "flex-end" },
+    deleteBtn: { marginTop: 12, alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 4 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     emptyState: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 100, paddingHorizontal: 40 },
+    emptyIconCircle: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 20,
+    },
     emptyText: { fontSize: 18, fontWeight: "bold", marginBottom: 8 },
     emptySubText: { fontSize: 14, textAlign: "center", opacity: 0.7 },
     groupTitle: { fontSize: 12, fontWeight: "bold", letterSpacing: 1, marginBottom: 12, marginLeft: 4 }

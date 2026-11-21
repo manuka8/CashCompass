@@ -1,18 +1,45 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 const TOKEN_KEY = 'cashcompass_auth_token';
 const USER_KEY = 'cashcompass_user_data';
 
 const DEFAULT_PORT = 3000;
-const DEV_MACHINE_IP = '192.168.80.69';
+const DEV_MACHINE_IP = '192.168.8.115';
+const REQUEST_TIMEOUT_MS = 10000;
 
-let defaultBaseUrl = `http://${DEV_MACHINE_IP}:${DEFAULT_PORT}/api`;
-if (Platform.OS === 'web') {
-  defaultBaseUrl = `http://localhost:${DEFAULT_PORT}/api`;
+function resolveBaseUrl() {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+
+  if (Platform.OS === 'web') {
+    return `http://localhost:${DEFAULT_PORT}/api`;
+  }
+
+  try {
+    const scriptURL = NativeModules?.SourceCode?.scriptURL;
+    if (scriptURL) {
+      const match = scriptURL.match(/^https?:\/\/([^:/]+)/);
+      const host = match?.[1];
+      if (host) {
+        if (host === 'localhost' || host === '127.0.0.1') {
+          const emulatorHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+          return `http://${emulatorHost}:${DEFAULT_PORT}/api`;
+        }
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+          return `http://${host}:${DEFAULT_PORT}/api`;
+        }
+      }
+    }
+  } catch {
+    // Fall back to DEV_MACHINE_IP
+  }
+
+  return `http://${DEV_MACHINE_IP}:${DEFAULT_PORT}/api`;
 }
 
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || defaultBaseUrl;
+export const BASE_URL = resolveBaseUrl();
 
 let authToken = null;
 
@@ -33,8 +60,12 @@ export const normalizeUser = (userData) => {
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
+  const isPublicAuthEndpoint =
+    endpoint === '/auth/login' ||
+    endpoint === '/auth/register' ||
+    endpoint === '/auth/forgot-password';
 
-  if (!authToken) {
+  if (!isPublicAuthEndpoint && !authToken) {
     authToken = await AsyncStorage.getItem(TOKEN_KEY);
   }
 
@@ -43,14 +74,18 @@ async function request(endpoint, options = {}) {
     ...(options.headers || {}),
   };
 
-  if (authToken) {
+  if (!isPublicAuthEndpoint && authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const res = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal,
     });
 
     const data = await res.json().catch(() => ({}));
@@ -66,7 +101,19 @@ async function request(endpoint, options = {}) {
 
     return data;
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(
+        `Connection timed out (${BASE_URL}). Make sure the backend server is running and your phone is on the same Wi-Fi.`
+      );
+    }
+    if (error?.message === 'Network request failed') {
+      throw new Error(
+        `Cannot reach server (${BASE_URL}). Make sure the backend server is running and your phone is on the same Wi-Fi.`
+      );
+    }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

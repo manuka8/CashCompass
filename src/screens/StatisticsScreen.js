@@ -12,6 +12,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
+import { Menu, Download, TrendingUp, TrendingDown } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { getCurrencySymbol } from "../utils/constants"
@@ -322,11 +323,11 @@ export default function StatisticsScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>☰</Text>
+                    <Menu size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Statistics</Text>
                 <TouchableOpacity onPress={generatePDF} style={styles.downloadBtn}>
-                    <Text style={{ fontSize: 20 }}>📥</Text>
+                    <Download size={22} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -364,6 +365,7 @@ export default function StatisticsScreen() {
                             color="#2ecc71"
                             theme={theme}
                             currency={currencySymbol}
+                            trend="up"
                         />
                         <StatCard
                             title="Lowest Income"
@@ -371,6 +373,7 @@ export default function StatisticsScreen() {
                             color="#2ecc71"
                             theme={theme}
                             currency={currencySymbol}
+                            trend="down"
                         />
                         <StatCard
                             title="Highest Expense"
@@ -378,6 +381,7 @@ export default function StatisticsScreen() {
                             color="#e74c3c"
                             theme={theme}
                             currency={currencySymbol}
+                            trend="up"
                         />
                         <StatCard
                             title="Lowest Expense"
@@ -385,6 +389,7 @@ export default function StatisticsScreen() {
                             color="#e74c3c"
                             theme={theme}
                             currency={currencySymbol}
+                            trend="down"
                         />
                     </View>
                 )}
@@ -393,9 +398,16 @@ export default function StatisticsScreen() {
     )
 }
 
-const StatCard = ({ title, item, color, theme, currency }) => (
+const StatCard = ({ title, item, color, theme, currency, trend }) => (
     <View style={[styles.statCard, { backgroundColor: theme.card }]}>
-        <Text style={[styles.statTitle, { color: theme.subtext }]}>{title}</Text>
+        <View style={styles.statHeaderRow}>
+            <Text style={[styles.statTitle, { color: theme.subtext }]}>{title}</Text>
+            {trend === "up" ? (
+                <TrendingUp size={16} color={color} strokeWidth={2.2} />
+            ) : (
+                <TrendingDown size={16} color={color} strokeWidth={2.2} />
+            )}
+        </View>
         {item ? (
             <>
                 <Text style={[styles.statValue, { color }]}>{currency}{parseFloat(item.amount).toFixed(0)}</Text>
@@ -497,10 +509,15 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
         elevation: 2,
     },
+    statHeaderRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 5,
+    },
     statTitle: {
         fontSize: 12,
         fontWeight: "600",
-        marginBottom: 5,
     },
     statValue: {
         fontSize: 20,

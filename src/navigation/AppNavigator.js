@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { useContext, useState, useEffect } from "react"
 import { View, ActivityIndicator, Text } from "react-native"
+import { Home, PiggyBank, Receipt, BarChart3, Settings } from "lucide-react-native"
 import { AuthContext } from "../context/AuthContext"
 import { ThemeProvider, ThemeContext } from "../context/ThemeContext"
 import CustomDrawerContent from "./CustomDrawerContent"
@@ -54,11 +55,41 @@ function MainDrawerNavigator() {
         }
       }}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Budget Planner" component={BudgetPlannerScreen} />
-      <Drawer.Screen name="Records" component={RecordScreen} />
-      <Drawer.Screen name="Statics" component={StatisticsScreen} />
-      <Drawer.Screen name="Settings" component={SettingsScreen} />
+      <Drawer.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          drawerIcon: ({ color, size }) => <Home size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Drawer.Screen
+        name="Budget Planner"
+        component={BudgetPlannerScreen}
+        options={{
+          drawerIcon: ({ color, size }) => <PiggyBank size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Drawer.Screen
+        name="Records"
+        component={RecordScreen}
+        options={{
+          drawerIcon: ({ color, size }) => <Receipt size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Drawer.Screen
+        name="Statics"
+        component={StatisticsScreen}
+        options={{
+          drawerIcon: ({ color, size }) => <BarChart3 size={size} color={color} strokeWidth={2} />,
+        }}
+      />
+      <Drawer.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          drawerIcon: ({ color, size }) => <Settings size={size} color={color} strokeWidth={2} />,
+        }}
+      />
     </Drawer.Navigator>
   )
 }

@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Image } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import { Moon, Sun, LogOut } from 'lucide-react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 
@@ -42,7 +43,14 @@ export default function CustomDrawerContent(props) {
             {/* Bottom Actions */}
             <View style={[styles.footer, { borderTopColor: theme.border }]}>
                 <View style={styles.themeToggleContainer}>
-                    <Text style={[styles.footerText, { color: theme.text }]}>Dark Mode</Text>
+                    <View style={styles.footerRow}>
+                        {theme.mode === 'dark' ? (
+                            <Moon size={20} color={theme.primary} strokeWidth={2} />
+                        ) : (
+                            <Sun size={20} color={theme.primary} strokeWidth={2} />
+                        )}
+                        <Text style={[styles.footerText, { color: theme.text }]}>Dark Mode</Text>
+                    </View>
                     <Switch
                         value={theme.mode === 'dark'}
                         onValueChange={toggleTheme}
@@ -51,6 +59,7 @@ export default function CustomDrawerContent(props) {
                     />
                 </View>
                 <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+                    <LogOut size={20} color="#EF4444" strokeWidth={2} />
                     <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
             </View>
@@ -70,6 +79,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
+        overflow: 'hidden',
+    },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
     },
     avatarText: {
         color: '#FFF',
@@ -100,11 +114,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 24,
     },
+    footerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     footerText: {
         fontSize: 16,
         fontWeight: '600',
     },
     logoutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
         paddingVertical: 12,
     },
     logoutText: {

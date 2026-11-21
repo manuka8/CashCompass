@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import { Dropdown } from "react-native-element-dropdown"
+import { ArrowLeft, Globe, Coins, Sun, Moon, Info, ChevronDown } from "lucide-react-native"
 import { ThemeContext } from "../context/ThemeContext"
 import { AuthContext } from "../context/AuthContext"
 import { api } from "../services/api"
@@ -50,7 +51,7 @@ export default function SettingsScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-                    <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
+                    <ArrowLeft size={24} color={theme.text} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
                 <View style={{ width: 40 }} />
@@ -91,7 +92,9 @@ export default function SettingsScreen() {
 
                     <View style={[styles.settingItem, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
                         <View style={styles.settingLabelContainer}>
-                            <Text style={styles.settingIcon}>🌍</Text>
+                            <View style={styles.settingIconBox}>
+                                <Globe size={20} color={theme.primary} strokeWidth={2} />
+                            </View>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>Country</Text>
                         </View>
                         <Dropdown
@@ -110,12 +113,15 @@ export default function SettingsScreen() {
                             containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
                             itemTextStyle={{ color: theme.text }}
                             activeColor={theme.primary + "10"}
+                            renderRightIcon={() => <ChevronDown size={16} color={theme.primary} style={{ marginLeft: 4 }} />}
                         />
                     </View>
 
                     <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingLabelContainer}>
-                            <Text style={styles.settingIcon}>💰</Text>
+                            <View style={styles.settingIconBox}>
+                                <Coins size={20} color={theme.primary} strokeWidth={2} />
+                            </View>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>Currency</Text>
                         </View>
                         <Dropdown
@@ -134,6 +140,7 @@ export default function SettingsScreen() {
                             containerStyle={{ borderRadius: 12, backgroundColor: theme.card }}
                             itemTextStyle={{ color: theme.text }}
                             activeColor={theme.primary + "10"}
+                            renderRightIcon={() => <ChevronDown size={16} color={theme.primary} style={{ marginLeft: 4 }} />}
                         />
                     </View>
 
@@ -147,7 +154,13 @@ export default function SettingsScreen() {
                         onPress={toggleTheme}
                     >
                         <View style={styles.settingLabelContainer}>
-                            <Text style={styles.settingIcon}>{theme.mode === 'dark' ? '☀️' : '🌙'}</Text>
+                            <View style={styles.settingIconBox}>
+                                {theme.mode === 'dark' ? (
+                                    <Sun size={20} color={theme.primary} strokeWidth={2} />
+                                ) : (
+                                    <Moon size={20} color={theme.primary} strokeWidth={2} />
+                                )}
+                            </View>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>
                                 {theme.mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                             </Text>
@@ -156,7 +169,9 @@ export default function SettingsScreen() {
 
                     <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
                         <View style={styles.settingLabelContainer}>
-                            <Text style={styles.settingIcon}>ℹ️</Text>
+                            <View style={styles.settingIconBox}>
+                                <Info size={20} color={theme.primary} strokeWidth={2} />
+                            </View>
                             <Text style={[styles.settingLabel, { color: theme.text }]}>App Version</Text>
                         </View>
                         <Text style={[styles.versionText, { color: theme.subtext }]}>1.0.0 (Build 42)</Text>
@@ -273,8 +288,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    settingIcon: {
-        fontSize: 20,
+    settingIconBox: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        justifyContent: "center",
+        alignItems: "center",
         marginRight: 12,
     },
     settingLabel: {
